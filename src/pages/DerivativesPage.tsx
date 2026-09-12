@@ -11,7 +11,7 @@ export default function DerivativesPage() {
       title="Widget Phái sinh (menu-derivatives)"
       intro="Bảng giá hợp đồng tương lai. Mount 1 widget, nhận sự kiện CTA đặt lệnh phái sinh."
     >
-      <WidgetHost productId="menu-derivatives" partnerCode="DEMO" height={480} />
+      <WidgetHost productId="menu-derivatives" partnerCode="NGUYENPQ" height={480} />
       <ActionLog />
       <ProxyApiDemo
         path="/api/gw/v1/derivative/days-info"

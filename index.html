@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AUTOFIN Widget — Ví dụ tích hợp</title>
+    <script>
+      // Bundle embed WebApp shim process.env bằng `||` nên giá trị đặt TRƯỚC
+      // lúc nạp script sẽ thắng. Trỏ API về cùng origin — proxy forward
+      // /api/* sang finserver (giấu nguồn, không CORS).
+      window.process = window.process || { env: {} };
+      window.process.env.REACT_APP_DOMAIN_API = window.location.origin;
+      window.process.env.DOMAIN_API = window.location.origin;
+    </script>
     <style>
       /* Không nạp SDK ở đây — lib/embed.ts tự inject /embedded/autofin-embed.js */
     </style>

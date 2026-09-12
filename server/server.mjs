@@ -18,7 +18,15 @@ import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getAccessToken, refreshAccessToken, tokenStatus } from './token-manager.mjs';
+import {
+  getAccessToken,
+  refreshAccessToken,
+  getPartnerToken,
+  refreshPartnerToken,
+  isPartnerAuthConfigured,
+  tokenStatus,
+  partnerTokenStatus,
+} from './token-manager.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = path.resolve(__dirname, '../dist');
@@ -55,13 +63,37 @@ const SDK_CACHE_TTL_MS = 5 * 60 * 1000;
 const sdkCache = new Map(); // key → { body: Buffer, contentType, fetchedAtMs }
 
 const app = express();
+
+// Node 22 undici có thể ném assertion khi TLS stream bị abort giữa chừng —
+// example proxy thì KHÔNG được chết vì lỗi mạng phía client: log rồi sống tiếp.
+process.on('uncaughtException', (err) => {
+  console.error(`[proxy] uncaughtException (bo qua): ${err.message}`);
+});
 // Route /api đọc raw body (JSON) — không dùng body parser toàn cục.
 app.use(express.raw({ type: '*/*', limit: '2mb' }));
 
 // ---------------------------------------------------------------- SDK widget
+// EMBED_SDK_FILE (tùy chọn): serve bundle từ file local thay vì WEBAPP_UPSTREAM
+// — dùng khi bản SIT chưa deploy (vd bundle shadow-always 10MB từ repo WebApp).
+const EMBED_SDK_FILE = process.env.EMBED_SDK_FILE || '';
+
 app.get(['/embedded/autofin-embed.js', '/embedded/autofin-embed.js.map', '/embedded/fac-chat.js'], async (req, res) => {
   const key = req.path;
   const target = SDK_FILES[key];
+
+  if (EMBED_SDK_FILE && key === '/embedded/autofin-embed.js') {
+    try {
+      const buf = await fs.promises.readFile(EMBED_SDK_FILE);
+      res.set('Content-Type', 'application/javascript; charset=utf-8');
+      res.set('Cache-Control', 'no-store');
+      return res.send(buf);
+    } catch (e) {
+      return res.status(500).type('text/plain').send(
+        `EMBED_SDK_FILE không đọc được (${EMBED_SDK_FILE}): ${e.message}`
+      );
+    }
+  }
+
   const origin = target.upstream();
 
   const hit = sdkCache.get(key);
@@ -124,8 +156,12 @@ app.all(['/api/v1/*', '/api/v1'], async (req, res) => {
 });
 
 // ----------------------------------------------------------------- API proxy
+// Browser: /api/gw/v1/x  →  upstream: {FIN_UPSTREAM}/gw/v1/x
+// (FIN_UPSTREAM chứa đủ base+prefix, vd https://host/gateway/api hoặc :3000/api)
+const finPathFromOriginal = (originalUrl) => originalUrl.replace(/^\/api/, '') || '/';
+
 app.all('/api/*', async (req, res) => {
-  const upstreamUrl = `${FIN_UPSTREAM}${req.originalUrl}`;
+  const upstreamUrl = `${FIN_UPSTREAM}${finPathFromOriginal(req.originalUrl)}`;
 
   const buildHeaders = (token) => {
     const headers = {};
@@ -133,7 +169,7 @@ app.all('/api/*', async (req, res) => {
       if (HOP_BY_HOP.has(name) || value === undefined) continue;
       headers[name] = Array.isArray(value) ? value.join(', ') : String(value);
     }
-    headers['authorization'] = `Bearer ${token}`;
+    if (token) headers['authorization'] = `Bearer ${token}`;
     headers['accept'] = headers['accept'] || 'application/json';
     return headers;
   };
@@ -148,18 +184,24 @@ app.all('/api/*', async (req, res) => {
 
   try {
     let upstream;
+    // Token gắn Bearer: ưu tiên PARTNER user token (auto-login từ
+    // PARTNER_CODE/USERNAME/PASSWORD trong .env); fallback org machine token;
+    // không có gì cấu hình/hết hạng → forward anonymous (endpoint public).
+    const getToken = isPartnerAuthConfigured() ? getPartnerToken : getAccessToken;
+    const refreshToken = isPartnerAuthConfigured() ? refreshPartnerToken : refreshAccessToken;
     try {
-      upstream = await forward(await getAccessToken());
+      upstream = await forward(await getToken());
     } catch (tokenErr) {
-      return res.status(502).type('application/json').send(JSON.stringify({
-        errorMessage: `Proxy chua lay duoc machine token: ${tokenErr.message}`,
-      }));
+      // Org-token module chưa có trên upstream (vd SIT) nhưng /api/gw/v1/*
+      // public → forward KHÔNG gắn Bearer thay vì chết 502.
+      console.warn(`[proxy] khong co token — forward anonymous: ${tokenErr.message}`);
+      upstream = await forward(null);
     }
 
     // 401 → token hết hạn/bị thu hồi: refresh đúng 1 lần rồi thử lại
     if (upstream.status === 401) {
       try {
-        upstream = await forward(await refreshAccessToken());
+        upstream = await forward(await refreshToken());
       } catch {
         /* giữ response 401 gốc */
       }
@@ -180,11 +222,37 @@ app.all('/api/*', async (req, res) => {
   }
 });
 
+// ------------------------------------------------- charting library passthrough
+// Widget chart (TradingView) tự nạp /static/charting_library/* từ cùng origin —
+// forward thẳng về WebApp upstream (file tĩnh, không đụng token).
+// Client abort → abort cả fetch upstream (tránh undici assert crash node 22).
+app.use('/static', async (req, res) => {
+  const abort = new AbortController();
+  req.on('close', () => abort.abort());
+  try {
+    const upstream = await fetch(`${WEBAPP_UPSTREAM}/static${req.url}`, {
+      signal: abort.signal,
+    });
+    if (!upstream.ok) {
+      return res.status(upstream.status).type('text/plain').send(`Khong tai duoc ${req.url}`);
+    }
+    const buf = Buffer.from(await upstream.arrayBuffer());
+    if (res.writableEnded || abort.signal.aborted) return;
+    res.set('Content-Type', upstream.headers.get('content-type') || 'application/octet-stream');
+    return res.send(buf);
+  } catch (e) {
+    if (abort.signal.aborted) return;
+    return res.status(502).type('text/plain').send(`Proxy khong goi duoc static: ${e.message}`);
+  }
+});
+
 // ------------------------------------------------------------------- healthz
 app.get('/healthz', (req, res) => {
   res.json({
     ok: true,
     token: tokenStatus(),
+    partnerAuth: isPartnerAuthConfigured(),
+    partnerToken: partnerTokenStatus(),
     upstreams: {
       finserver: FIN_UPSTREAM,
       webapp: WEBAPP_UPSTREAM,

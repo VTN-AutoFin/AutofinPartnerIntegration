@@ -5,11 +5,11 @@
   "description": "Vi du tich hop AUTOFIN Widget: proxy server (giau API nguon) + example app Vite + React",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n proxy,web -c yellow,cyan \"node server/server.mjs\" \"vite\"",
-    "dev:proxy": "node server/server.mjs",
+    "dev": "concurrently -n proxy,web -c yellow,cyan \"node --env-file=.env server/server.mjs\" \"vite\"",
+    "dev:proxy": "node --env-file=.env server/server.mjs",
     "dev:web": "vite",
     "build": "vite build",
-    "start": "node server/server.mjs"
+    "start": "node --env-file=.env server/server.mjs"
   },
   "dependencies": {
     "express": "^4.19.2",
