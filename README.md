@@ -7,7 +7,8 @@ Project mẫu giúp đối tác tích hợp **AUTOFIN Widget** vào hệ thống
    - chuyển tiếp mọi `/api/*` sang API nguồn **và tự gắn machine token** —
      browser **không bao giờ** biết API nguồn cũng như không giữ token/secret nào.
 2. **Example app (Vite + React)** — nhiều trang, mỗi trang mount một widget ví dụ
-   (phái sinh, tín hiệu, bảng điện, tin tức, bộ lọc cổ phiếu, callbacks đặt lệnh).
+   (phái sinh, tín hiệu, bảng điện, tin tức, bộ lọc cổ phiếu, callbacks đặt lệnh,
+   FAC ChatPanel chat AI).
 3. **Tài liệu tiếng Việt** trong [`docs/`](docs/).
 
 ## Kiến trúc
@@ -17,9 +18,11 @@ Browser (site đối tác)
    │  chỉ thấy domain proxy
    ▼
 Proxy server :5501 ── /embedded/autofin-embed.js ──► WebApp (file SDK, có cache)
+        │         /embedded/fac-chat.js ──────► FAC frontend (/remote/fac-chat.js)
         │
-        └── /api/* + Bearer machine token ──► finserver (API nguồn)
-                  POST /api/org/token (Basic clientId:clientSecret, hết hạn 1h, tự refresh)
+        ├── /api/gw/* + Bearer machine token ──► finserver (API thị trường)
+        │         POST /api/org/token (Basic clientId:clientSecret, 1h, tự refresh)
+        └── /api/v1/* (forward nguyên vẹn) ────► FAC backend (chat AI)
 ```
 
 ## Quick start
@@ -56,6 +59,7 @@ origin proxy, không có request nào tới API nguồn.
 3. [Proxy server](docs/03-proxy-server.md) — từng route, token cache/refresh, deploy.
 4. [Tích hợp widget](docs/04-tich-hop-widget.md) — script tag, mount option, từng loại widget.
 5. [Callbacks](docs/05-callbacks.md) — `onPartnerAction`, mở form đặt lệnh từ event.
+6. [FAC ChatPanel](docs/06-fac-chatpanel.md) — widget chat AI (`window.FacAgentChat`), API `/api/v1/*` qua proxy.
 
 ## Lưu ý hiện trạng SDK
 

@@ -9,6 +9,7 @@ const NAV = [
   { to: '/news', label: 'Tin tức' },
   { to: '/stock-filter', label: 'Bộ lọc cổ phiếu' },
   { to: '/callbacks', label: 'Callbacks (đặt lệnh)' },
+  { to: '/chatpanel', label: 'FAC Chat (AI)' },
 ];
 
 export default function Layout() {
