@@ -1,0 +1,147 @@
+/* Example app — plain CSS, không phụ thuộc framework widget */
+:root {
+  --bg: #f4f6f8;
+  --card: #ffffff;
+  --line: #e5e7eb;
+  --text: #111827;
+  --muted: #6b7280;
+  --primary: #33b46d;
+  --code-bg: #0f172a;
+  --code-text: #e2e8f0;
+}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+code {
+  background: #eef2ff;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+pre { margin: 0; }
+
+.shell { display: flex; min-height: 100%; }
+
+/* ---- sidebar ---- */
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--card);
+  border-right: 1px solid var(--line);
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+.brand { display: flex; gap: 10px; align-items: center; }
+.brand-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--primary); flex-shrink: 0;
+}
+.brand-name { font-weight: 700; font-size: 0.95rem; }
+.brand-sub { font-size: 0.72rem; color: var(--muted); }
+.sidebar nav { display: flex; flex-direction: column; gap: 2px; }
+.nav-item {
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+.nav-item:hover { background: #f1f5f9; }
+.nav-item.active { background: #e7f7ee; color: #16794a; font-weight: 600; }
+.sidebar-foot {
+  margin-top: auto;
+  font-size: 0.72rem;
+  color: var(--muted);
+  word-break: break-all;
+}
+.muted { color: var(--muted); font-size: 0.85rem; }
+
+/* ---- content ---- */
+.content { flex: 1; min-width: 0; padding: 26px 30px 60px; }
+.page { max-width: 980px; }
+h1 { font-size: 1.35rem; margin: 0 0 8px; }
+.page-intro { color: var(--muted); margin: 0 0 20px; max-width: 760px; }
+.page-body { display: flex; flex-direction: column; gap: 16px; }
+
+/* ---- cards ---- */
+.widget-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.widget-card-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.widget-host { width: 100%; border-radius: 8px; overflow: hidden; }
+.widget-status { margin-top: 8px; font-size: 0.85rem; color: var(--muted); }
+.widget-status.err { color: #dc2626; }
+
+.widget-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.widget-link {
+  display: flex; flex-direction: column; gap: 4px;
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 12px; text-decoration: none; color: var(--text);
+  font-size: 0.88rem;
+}
+.widget-link:hover { border-color: var(--primary); }
+.widget-link span { color: var(--muted); font-size: 0.8rem; }
+
+/* ---- logs / code ---- */
+.action-log, .code-block {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  background: var(--code-bg);
+  color: var(--code-text);
+  border-radius: 10px;
+  padding: 12px 14px;
+  overflow: auto;
+}
+.code-title { display: flex; justify-content: space-between; align-items: center; }
+
+/* ---- controls ---- */
+.btn {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--primary); color: #16794a; }
+.btn:disabled { opacity: 0.6; cursor: default; }
+
+.api-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+.api-path { flex: 1; overflow-x: auto; white-space: nowrap; }
+
+/* ---- callbacks page ---- */
+.callbacks-layout { display: grid; grid-template-columns: 1fr 320px; gap: 16px; }
+@media (max-width: 900px) { .callbacks-layout { grid-template-columns: 1fr; } }
+.callback-side { display: flex; flex-direction: column; gap: 16px; }
+.order-form .order-row {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 10px; padding: 6px 0; font-size: 0.9rem;
+}
+.order-form input {
+  border: 1px solid var(--line); border-radius: 6px;
+  padding: 6px 10px; width: 140px; font-size: 0.9rem;
+}
+.buy { color: #dc2626; }
+.sell { color: #16794a; }

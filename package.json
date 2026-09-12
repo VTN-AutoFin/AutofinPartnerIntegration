@@ -1,0 +1,28 @@
+{
+  "name": "autofin-widget-example",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Vi du tich hop AUTOFIN Widget: proxy server (giau API nguon) + example app Vite + React",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n proxy,web -c yellow,cyan \"node server/server.mjs\" \"vite\"",
+    "dev:proxy": "node server/server.mjs",
+    "dev:web": "vite",
+    "build": "vite build",
+    "start": "node server/server.mjs"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.10",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.2",
+    "concurrently": "^9.0.1",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.8"
+  }
+}
