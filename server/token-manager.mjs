@@ -96,8 +96,8 @@ let partnerInflight = null;
 
 function partnerConfig() {
   const partnerCode = process.env.PARTNER_CODE || '';
-  const username = process.env.PARTNER_USERNAME || '';
-  const password = process.env.PARTNER_PASSWORD || '';
+  const username = process.env.PARTNER_CLIENT_ID || '';
+  const password = process.env.PARTNER_CLIENT_SECRET || '';
   // AUTH_API_BASE: base URL dịch vụ auth (đã kèm prefix, vd
   // https://api-sit.autofin.vn:4443/gateway/api). Trống = dùng FIN_UPSTREAM.
   const finUpstream = (
@@ -105,7 +105,7 @@ function partnerConfig() {
     process.env.FIN_UPSTREAM ||
     'http://localhost:3000/api'
   ).replace(/\/+$/, '');
-  if (!partnerCode || !password) return null;
+  if (!partnerCode || !password || !username) return null;
   return { partnerCode, username, password, finUpstream };
 }
 
@@ -116,7 +116,7 @@ export function isPartnerAuthConfigured() {
 
 async function fetchPartnerToken() {
   const cfg = partnerConfig();
-  if (!cfg) throw new Error('Thiếu PARTNER_CODE / PARTNER_PASSWORD — xem .env.example');
+  if (!cfg) throw new Error('Thiếu PARTNER_CODE / PARTNER_CLIENT_ID / PARTNER_CLIENT_SECRET — xem .env.example');
 
   let res;
   try {
@@ -125,7 +125,7 @@ async function fetchPartnerToken() {
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({
         partnerCode: cfg.partnerCode,
-        username: cfg.username || undefined,
+        username: cfg.username,
         password: cfg.password,
       }),
     });

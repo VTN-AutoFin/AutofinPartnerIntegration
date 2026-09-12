@@ -73,27 +73,9 @@ process.on('uncaughtException', (err) => {
 app.use(express.raw({ type: '*/*', limit: '2mb' }));
 
 // ---------------------------------------------------------------- SDK widget
-// EMBED_SDK_FILE (tùy chọn): serve bundle từ file local thay vì WEBAPP_UPSTREAM
-// — dùng khi bản SIT chưa deploy (vd bundle shadow-always 10MB từ repo WebApp).
-const EMBED_SDK_FILE = process.env.EMBED_SDK_FILE || '';
-
 app.get(['/embedded/autofin-embed.js', '/embedded/autofin-embed.js.map', '/embedded/fac-chat.js'], async (req, res) => {
   const key = req.path;
   const target = SDK_FILES[key];
-
-  if (EMBED_SDK_FILE && key === '/embedded/autofin-embed.js') {
-    try {
-      const buf = await fs.promises.readFile(EMBED_SDK_FILE);
-      res.set('Content-Type', 'application/javascript; charset=utf-8');
-      res.set('Cache-Control', 'no-store');
-      return res.send(buf);
-    } catch (e) {
-      return res.status(500).type('text/plain').send(
-        `EMBED_SDK_FILE không đọc được (${EMBED_SDK_FILE}): ${e.message}`
-      );
-    }
-  }
-
   const origin = target.upstream();
 
   const hit = sdkCache.get(key);
