@@ -47,6 +47,10 @@ const HOP_BY_HOP = new Set([
   'cookie',
   // fetch tự tính lại theo body đã forward
   'content-length',
+  // NGÒN ĐỐT: undici (Node 22) crash `assert(!this.paused)` khi giải nén gzip
+  // từ nginx SIT — exception async lọt qua uncaughtException handler → await
+  // fetch treo vĩnh viễn. Luôn yêu cầu upstream gửi KHÔNG nén.
+  'accept-encoding',
 ]);
 // Header upstream trả về nhưng không cho browser thấy
 const STRIP_RESPONSE_HEADERS = new Set([
@@ -87,7 +91,10 @@ app.get(['/embedded/autofin-embed.js', '/embedded/autofin-embed.js.map', '/embed
   }
 
   try {
-    const upstream = await fetch(`${origin}${target.path}`);
+    // identity: tránh bug undici + gzip (assert !this.paused) — xem HOP_BY_HOP
+    const upstream = await fetch(`${origin}${target.path}`, {
+      headers: { 'accept-encoding': 'identity' },
+    });
     if (!upstream.ok) {
       return res.status(502).type('text/plain').send(
         `Khong tai duoc SDK widget (HTTP ${upstream.status}). Kiem tra nguon ${origin}${target.path} da chua?`
@@ -122,6 +129,7 @@ app.all('/financial-agent/api/*', async (req, res) => {
     if (HOP_BY_HOP.has(name) || value === undefined) continue;
     headers[name] = Array.isArray(value) ? value.join(', ') : String(value);
   }
+  headers['accept-encoding'] = 'identity'; // undici+gzip bug — xem HOP_BY_HOP
   const body =
     req.method === 'GET' || req.method === 'HEAD' || !req.body || req.body.length === 0
       ? undefined
@@ -154,6 +162,7 @@ app.all(['/api/v1/*', '/api/v1'], async (req, res) => {
     if (HOP_BY_HOP.has(name) || value === undefined) continue;
     headers[name] = Array.isArray(value) ? value.join(', ') : String(value);
   }
+  headers['accept-encoding'] = 'identity'; // undici+gzip bug — xem HOP_BY_HOP
   const body =
     req.method === 'GET' || req.method === 'HEAD' || !req.body || req.body.length === 0
       ? undefined
@@ -189,6 +198,7 @@ app.all('/api/*', async (req, res) => {
     }
     if (token) headers['authorization'] = `Bearer ${token}`;
     headers['accept'] = headers['accept'] || 'application/json';
+    headers['accept-encoding'] = 'identity';
     return headers;
   };
 
@@ -250,6 +260,7 @@ app.use('/static', async (req, res) => {
   try {
     const upstream = await fetch(`${WEBAPP_UPSTREAM}/static${req.url}`, {
       signal: abort.signal,
+      headers: { 'accept-encoding': 'identity' }, // undici+gzip bug — xem HOP_BY_HOP
     });
     if (!upstream.ok) {
       return res.status(upstream.status).type('text/plain').send(`Khong tai duoc ${req.url}`);
