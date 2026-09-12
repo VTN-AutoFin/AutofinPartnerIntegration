@@ -13,6 +13,9 @@ export default defineConfig({
       '/api': 'http://localhost:5501',
       '/embedded': 'http://localhost:5501',
       '/static': 'http://localhost:5501',
+      // fac-chat.js bundle SIT build có VITE_API_BASE=/financial-agent → mọi API
+      // call ra /financial-agent/api/v1/* — forward sang BFF :5501 (như /api).
+      '/financial-agent': 'http://localhost:5501',
     },
   },
   build: {

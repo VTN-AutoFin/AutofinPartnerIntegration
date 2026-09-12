@@ -17,6 +17,7 @@
 import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
+import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import {
   getAccessToken,
@@ -109,6 +110,41 @@ app.get(['/embedded/autofin-embed.js', '/embedded/autofin-embed.js.map', '/embed
 });
 
 // ------------------------------------------------------------- FAC API proxy
+// fac-chat.js bundle SIT build có VITE_API_BASE=/financial-agent → browser gọi
+// /financial-agent/api/v1/* (shape SIT, như WebApp route handler). Forward giữ
+// nguyên suffix sang FAC_API_UPSTREAM (đã gồm /financial-agent). Route này
+// STREAM (pipe) — SSE chat /message:stream không được buffer.
+app.all('/financial-agent/api/*', async (req, res) => {
+  const suffix = req.originalUrl.replace(/^\/financial-agent/, '');
+  const upstreamUrl = `${FAC_API_UPSTREAM}${suffix}`;
+  const headers = {};
+  for (const [name, value] of Object.entries(req.headers)) {
+    if (HOP_BY_HOP.has(name) || value === undefined) continue;
+    headers[name] = Array.isArray(value) ? value.join(', ') : String(value);
+  }
+  const body =
+    req.method === 'GET' || req.method === 'HEAD' || !req.body || req.body.length === 0
+      ? undefined
+      : req.body;
+  try {
+    const upstream = await fetch(upstreamUrl, { method: req.method, headers, body });
+    const resHeaders = {};
+    upstream.headers.forEach((value, name) => {
+      if (!STRIP_RESPONSE_HEADERS.has(name.toLowerCase())) resHeaders[name] = value;
+    });
+    res.status(upstream.status).set(resHeaders);
+    if (upstream.body) {
+      Readable.fromWeb(upstream.body).pipe(res);
+    } else {
+      res.end();
+    }
+  } catch {
+    return res.status(502).type('application/json').send(
+      JSON.stringify({ errorMessage: 'Proxy khong goi duoc FAC API' })
+    );
+  }
+});
+
 // FAC ChatPanel (/api/v1/*) — FAC backend tự quản phiên (login/SSE), KHÔNG gắn
 // machine token org; header client (Authorization…) được forward nguyên vẹn.
 app.all(['/api/v1/*', '/api/v1'], async (req, res) => {
