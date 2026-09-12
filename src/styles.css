@@ -24,6 +24,15 @@ code {
   border-radius: 4px;
   font-size: 0.85em;
 }
+/* Inline-code chip style must not leak into code blocks: the chip's light
+   background + the block's light --code-text renders text invisible. */
+pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+  color: inherit;
+}
 pre { margin: 0; }
 
 .shell { display: flex; min-height: 100%; }
