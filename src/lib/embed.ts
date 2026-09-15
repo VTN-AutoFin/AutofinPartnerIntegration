@@ -150,6 +150,21 @@ export function useAutofinEmbed(opts: UseAutofinEmbedOptions) {
           return;
         }
         handleRef.current = handle;
+        // Demo workaround cho bug embed bundle: themeRoot trong shadow không có
+        // height constraint → chuỗi h-full của surface resolve theo content height
+        // (auto-giãn) → LayoutScrollBar không bao giờ overflow → widget cao cố
+        // định bị cắt cụt, mất scroll. Fix gốc thuộc về WebApp packages/embed
+        // (mount.tsx phải tự set themeRoot height 100% + rebuild bundle).
+        if (handle.shadow) {
+          const style = document.createElement('style');
+          style.setAttribute('data-af-demo-height-fix', '1');
+          style.textContent = `
+            [data-autofin-theme-root]{height:100% !important}
+            /* wrapper không class giữa mountNode(display:contents) và af-embed-surface — height:auto */
+            [data-autofin-theme-root] > * > * { height: 100%; }
+          `;
+          handle.shadow.appendChild(style);
+        }
         setStatus('ready');
       })
       .catch((e: Error) => {
