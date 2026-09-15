@@ -17,7 +17,6 @@
 import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
-import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import {
   getAccessToken,
@@ -35,15 +34,12 @@ const DIST_DIR = path.resolve(__dirname, '../dist');
 const PORT = Number(process.env.PORT) || 5501;
 const FIN_UPSTREAM = (process.env.FIN_UPSTREAM || 'http://localhost:3000').replace(/\/+$/, '');
 const WEBAPP_UPSTREAM = (process.env.WEBAPP_UPSTREAM || 'http://localhost:4200').replace(/\/+$/, '');
-const FAC_WEB_UPSTREAM = (process.env.FAC_WEB_UPSTREAM || 'http://localhost:5173').replace(/\/+$/, '');
-const FAC_API_UPSTREAM = (process.env.FAC_API_UPSTREAM || 'http://localhost:8002').replace(/\/+$/, '');
 
 // Header client gửi lên nhưng KHÔNG được chuyển sang upstream
 const HOP_BY_HOP = new Set([
   'host', 'connection', 'keep-alive', 'transfer-encoding', 'upgrade',
   'proxy-authenticate', 'proxy-authorization', 'te', 'trailer',
-  // cookie client luôn bị bỏ (finserver route ghi đè Authorization bằng machine
-  // token; FAC route giữ Authorization client nguyên vẹn cho phiên FAC)
+  // cookie client luôn bị bỏ (finserver route ghi đè Authorization bằng machine token)
   'cookie',
   // fetch tự tính lại theo body đã forward
   'content-length',
@@ -61,8 +57,6 @@ const STRIP_RESPONSE_HEADERS = new Set([
 const SDK_FILES = {
   '/embedded/autofin-embed.js': { upstream: () => WEBAPP_UPSTREAM, path: '/embed/autofin-embed.js' },
   '/embedded/autofin-embed.js.map': { upstream: () => WEBAPP_UPSTREAM, path: '/embed/autofin-embed.js.map' },
-  // FAC ChatPanel remote bundle (window.FacAgentChat)
-  '/embedded/fac-chat.js': { upstream: () => FAC_WEB_UPSTREAM, path: '/remote/fac-chat.js' },
 };
 const SDK_CACHE_TTL_MS = 5 * 60 * 1000;
 const sdkCache = new Map(); // key → { body: Buffer, contentType, fetchedAtMs }
@@ -78,7 +72,7 @@ process.on('uncaughtException', (err) => {
 app.use(express.raw({ type: '*/*', limit: '2mb' }));
 
 // ---------------------------------------------------------------- SDK widget
-app.get(['/embedded/autofin-embed.js', '/embedded/autofin-embed.js.map', '/embedded/fac-chat.js'], async (req, res) => {
+app.get(['/embedded/autofin-embed.js', '/embedded/autofin-embed.js.map'], async (req, res) => {
   const key = req.path;
   const target = SDK_FILES[key];
   const origin = target.upstream();
@@ -112,72 +106,6 @@ app.get(['/embedded/autofin-embed.js', '/embedded/autofin-embed.js.map', '/embed
   } catch (e) {
     return res.status(502).type('text/plain').send(
       `Khong tai duoc SDK widget: ${e.message}. Kiem tra nguon ${origin} da chua?`
-    );
-  }
-});
-
-// ------------------------------------------------------------- FAC API proxy
-// fac-chat.js bundle SIT build có VITE_API_BASE=/financial-agent → browser gọi
-// /financial-agent/api/v1/* (shape SIT, như WebApp route handler). Forward giữ
-// nguyên suffix sang FAC_API_UPSTREAM (đã gồm /financial-agent). Route này
-// STREAM (pipe) — SSE chat /message:stream không được buffer.
-app.all('/financial-agent/api/*', async (req, res) => {
-  const suffix = req.originalUrl.replace(/^\/financial-agent/, '');
-  const upstreamUrl = `${FAC_API_UPSTREAM}${suffix}`;
-  const headers = {};
-  for (const [name, value] of Object.entries(req.headers)) {
-    if (HOP_BY_HOP.has(name) || value === undefined) continue;
-    headers[name] = Array.isArray(value) ? value.join(', ') : String(value);
-  }
-  headers['accept-encoding'] = 'identity'; // undici+gzip bug — xem HOP_BY_HOP
-  const body =
-    req.method === 'GET' || req.method === 'HEAD' || !req.body || req.body.length === 0
-      ? undefined
-      : req.body;
-  try {
-    const upstream = await fetch(upstreamUrl, { method: req.method, headers, body });
-    const resHeaders = {};
-    upstream.headers.forEach((value, name) => {
-      if (!STRIP_RESPONSE_HEADERS.has(name.toLowerCase())) resHeaders[name] = value;
-    });
-    res.status(upstream.status).set(resHeaders);
-    if (upstream.body) {
-      Readable.fromWeb(upstream.body).pipe(res);
-    } else {
-      res.end();
-    }
-  } catch {
-    return res.status(502).type('application/json').send(
-      JSON.stringify({ errorMessage: 'Proxy khong goi duoc FAC API' })
-    );
-  }
-});
-
-// FAC ChatPanel (/api/v1/*) — FAC backend tự quản phiên (login/SSE), KHÔNG gắn
-// machine token org; header client (Authorization…) được forward nguyên vẹn.
-app.all(['/api/v1/*', '/api/v1'], async (req, res) => {
-  const upstreamUrl = `${FAC_API_UPSTREAM}${req.originalUrl}`;
-  const headers = {};
-  for (const [name, value] of Object.entries(req.headers)) {
-    if (HOP_BY_HOP.has(name) || value === undefined) continue;
-    headers[name] = Array.isArray(value) ? value.join(', ') : String(value);
-  }
-  headers['accept-encoding'] = 'identity'; // undici+gzip bug — xem HOP_BY_HOP
-  const body =
-    req.method === 'GET' || req.method === 'HEAD' || !req.body || req.body.length === 0
-      ? undefined
-      : req.body;
-  try {
-    const upstream = await fetch(upstreamUrl, { method: req.method, headers, body });
-    const resHeaders = {};
-    upstream.headers.forEach((value, name) => {
-      if (!STRIP_RESPONSE_HEADERS.has(name.toLowerCase())) resHeaders[name] = value;
-    });
-    res.status(upstream.status).set(resHeaders);
-    return res.send(Buffer.from(await upstream.arrayBuffer()));
-  } catch {
-    return res.status(502).type('application/json').send(
-      JSON.stringify({ errorMessage: 'Proxy khong goi duoc FAC API' })
     );
   }
 });
@@ -285,8 +213,6 @@ app.get('/healthz', (req, res) => {
     upstreams: {
       finserver: FIN_UPSTREAM,
       webapp: WEBAPP_UPSTREAM,
-      facWeb: FAC_WEB_UPSTREAM,
-      facApi: FAC_API_UPSTREAM,
     },
     mode: fs.existsSync(DIST_DIR) ? 'prod (dist/)' : 'dev (chỉ proxy — chạy vite riêng)',
   });

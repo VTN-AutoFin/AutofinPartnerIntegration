@@ -86,7 +86,6 @@ Snippet tương tự cho từng sản phẩm — xem thư mục `src/pages/` c�
 | `comp-signals` | Khối tín hiệu gọn |
 | `comp-reports` | Khối báo cáo gọn |
 | `overlay-stock-detail` / `overlay-index-detail` / `overlay-industry-detail` | Overlay chi tiết (stock/index/ngành) |
-| `chatpanel` | Panel chat |
 
 ## Các option của `mount()`
 

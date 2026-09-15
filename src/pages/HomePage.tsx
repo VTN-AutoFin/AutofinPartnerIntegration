@@ -30,7 +30,7 @@ const WIDGETS: Array<{ to: string; label: string; desc: string }> = [
   { to: '/news', label: 'menu-news', desc: 'Tin tức thị trường (autoMount)' },
   { to: '/stock-filter', label: 'stock-filter', desc: 'Bộ lọc cổ phiếu (tắt overlay nội bộ)' },
   { to: '/callbacks', label: 'onPartnerAction', desc: 'Bắt sự kiện → mở form đặt lệnh mẫu' },
-  { to: '/chatpanel', label: 'FAC ChatPanel', desc: 'Chat AI — SDK riêng FacAgentChat, API /api/v1/* qua proxy' },
+  { to: '/chatpanel', label: 'FAC ChatPanel (Sắp ra mắt)', desc: 'Chat AI — đang hoàn thiện, chưa khả dụng ở giai đoạn này' },
 ];
 
 export default function HomePage() {
