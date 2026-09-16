@@ -78,7 +78,7 @@ declare global {
 export const API_BASE: string =
   (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/+$/, '') || '';
 
-export const PARTNER_CODE = 'NGUYENPQ';
+export const PARTNER_CODE = 'YOUR_PARTNER_CODE';
 
 // ------------------------------------------------------------- load SDK once
 

@@ -19,7 +19,7 @@ export default function StockFilterPage() {
     >
       <WidgetHost
         productId="stock-filter"
-        partnerCode="NGUYENPQ"
+        partnerCode="YOUR_PARTNER_CODE"
         height={480}
         features={{ internalOverlays: false }}
       />

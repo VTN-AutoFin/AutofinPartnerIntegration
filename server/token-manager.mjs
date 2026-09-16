@@ -99,7 +99,7 @@ function partnerConfig() {
   const username = process.env.PARTNER_CLIENT_ID || '';
   const password = process.env.PARTNER_CLIENT_SECRET || '';
   // AUTH_API_BASE: base URL dịch vụ auth (đã kèm prefix, vd
-  // https://api-sit.autofin.vn:4443/gateway/api). Trống = dùng FIN_UPSTREAM.
+  // https://api.autofin.vn/gateway/api). Trống = dùng FIN_UPSTREAM.
   const finUpstream = (
     process.env.AUTH_API_BASE ||
     process.env.FIN_UPSTREAM ||

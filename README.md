@@ -7,8 +7,7 @@ Project mẫu giúp đối tác tích hợp **AUTOFIN Widget** vào hệ thống
    - chuyển tiếp mọi `/api/*` sang API nguồn **và tự gắn machine token** —
      browser **không bao giờ** biết API nguồn cũng như không giữ token/secret nào.
 2. **Example app (Vite + React)** — nhiều trang, mỗi trang mount một widget ví dụ
-   (phái sinh, tín hiệu, bảng điện, tin tức, bộ lọc cổ phiếu, callbacks đặt lệnh;
-   tab chat AI hiện đang **Coming Soon**).
+   (phái sinh, tín hiệu, bảng điện, tin tức, bộ lọc cổ phiếu, callbacks đặt lệnh).
 3. **Tài liệu tiếng Việt** trong [`docs/`](docs/).
 
 ## Kiến trúc
@@ -58,6 +57,8 @@ origin proxy, không có request nào tới API nguồn.
 4. [Tích hợp widget](docs/04-tich-hop-widget.md) — script tag, mount option, từng loại widget.
 5. [Callbacks](docs/05-callbacks.md) — `onPartnerAction`, mở form đặt lệnh từ event.
 6. [Chat AI](docs/06-chat-ai.md) — **Coming Soon**: chat AI chưa khả dụng ở giai đoạn này (1 tài khoản partner, chưa quản lý user).
+
+Lịch sử thay đổi: [CHANGELOG.md](CHANGELOG.md) — hiện tại **Doc v0.1** (khởi tạo project ví dụ đầy đủ, upstream PROD, gỡ FAC Chat).
 
 ## Lưu ý hiện trạng SDK
 
