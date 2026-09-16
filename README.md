@@ -2,7 +2,7 @@
 
 Project mẫu giúp đối tác tích hợp **AUTOFIN Widget** vào hệ thống của mình:
 
-1. **Proxy server (BFF)** — điểm tiếp xúc duy nhất của browser. Server này:
+1. **Proxy server (Backend-for-Frontend)** — điểm tiếp xúc duy nhất của browser. Server này:
    - phục vụ SDK widget tại `/embedded/autofin-embed.js`;
    - chuyển tiếp mọi `/api/*` sang API nguồn **và tự gắn machine token** —
      browser **không bao giờ** biết API nguồn cũng như không giữ token/secret nào.

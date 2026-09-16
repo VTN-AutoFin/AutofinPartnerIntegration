@@ -9,7 +9,7 @@ const ARCH = `┌─────────────────────
            │  /api/gw/v1/*
            ▼
 ┌──────────────────────────────┐
-│  Proxy server (BFF)          │   ← project này: server/server.mjs
+│  Proxy server                │   ← project này: server/server.mjs
 │  — serve SDK (cache)         │
 │  — tự gắn Bearer machine     │
 │    token (ORG_CLIENT_ID/     │

@@ -2,7 +2,7 @@
 
 ## Tổng quan
 
-Đối tác tích hợp AUTOFIN Widget thông qua **một máy chủ trung gian (proxy/BFF)**
+Đối tác tích hợp AUTOFIN Widget thông qua **một máy chủ trung gian (proxy Backend-for-Frontend)**
 do đối tác vận hành. Browser của người dùng cuối **chỉ giao tiếp với proxy** —
 không biết sự tồn tại của API nguồn.
 
@@ -15,7 +15,7 @@ không biết sự tồn tại của API nguồn.
            │  GET|POST /api/gw/v1/*            (dữ liệu widget)
            ▼
 ┌──────────────────────────────┐
-│  Proxy server (BFF) đối tác  │   ← server/server.mjs trong project này
+│  Proxy server đối tác        │   ← server/server.mjs trong project này
 │  1. Serve SDK (cache 5 phút) │
 │  2. Chuyển tiếp /api/*       │
 │  3. Tự gắn Bearer token      │

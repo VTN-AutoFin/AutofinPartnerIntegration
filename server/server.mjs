@@ -1,5 +1,5 @@
 /**
- * AUTOFIN Widget — Sample partner proxy (BFF).
+ * AUTOFIN Widget — Sample partner proxy (Backend-for-Frontend).
  *
  * Đây là ĐIỂM TIẾP XÚC DUY NHẤT của browser:
  *   GET /embedded/autofin-embed.js(.map)  → SDK widget (fetch từ WebApp, cache)

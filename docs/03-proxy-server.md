@@ -1,4 +1,4 @@
-# 03 — Proxy server (BFF)
+# 03 — Proxy server (Backend-for-Frontend)
 
 Toàn bộ mã: [`server/server.mjs`](../server/server.mjs) + [`server/token-manager.mjs`](../server/token-manager.mjs).
 Chỉ dùng Express + `fetch` toàn cục (Node 18+) — không thêm dependency proxy nào,
