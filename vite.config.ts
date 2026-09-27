@@ -13,6 +13,7 @@ export default defineConfig({
       '/api': 'http://localhost:5501',
       '/embedded': 'http://localhost:5501',
       '/static': 'http://localhost:5501',
+      '/demo': 'http://localhost:5501',
     },
   },
   build: {

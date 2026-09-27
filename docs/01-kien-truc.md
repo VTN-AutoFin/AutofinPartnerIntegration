@@ -62,6 +62,23 @@ Authorization: Basic base64(ORG_CLIENT_ID:ORG_CLIENT_SECRET)
   dùng chung 1 lần fetch; khi finserver trả 401, proxy refresh token đúng 1 lần
   rồi retry.
 
+### 5. Token theo từng khách (chỉ widget Chat AI)
+
+Widget mà mọi khách thấy dữ liệu giống nhau thì token tổ chức ở trên là đủ. Chat AI
+cần biết đang nói chuyện với ai, nên proxy xin token riêng cho từng khách:
+
+```
+POST {FIN_UPSTREAM}/api/org/token
+Authorization: Basic base64(ORG_CLIENT_ID:ORG_CLIENT_SECRET)
+{ "externalUserId": "<id khách trong hệ đối tác>" }
+
+→ { data: { accessToken, expiresIn, scope: "org_data end_user", ... } }
+```
+
+AUTOFIN ký `externalUserId` vào token, nên trình duyệt không thể tự nhận mình là
+khách khác. **Id khách phải lấy từ phiên phía server của đối tác**, không bao giờ từ
+header/query/body của trình duyệt. Chi tiết: [Chat AI widget](06-chat-ai.md).
+
 ## Vì sao API nguồn được giấu hoàn toàn
 
 | Cơ chế | Chi tiết |
@@ -71,6 +88,7 @@ Authorization: Basic base64(ORG_CLIENT_ID:ORG_CLIENT_SECRET)
 | Sanitize header | Bỏ `server`, `via`, `x-powered-by`, `content-encoding` từ response nguồn |
 | Lỗi không lộ nguồn | Message lỗi proxy không chứa URL finserver/WebApp |
 | Token ở server | `ORG_CLIENT_ID/SECRET` chỉ nằm trong `.env` server; browser không giữ gì |
+| Authorization client bị bỏ | Header `Authorization` do browser gửi luôn bị xoá trước khi forward — proxy tự gắn token |
 
 ## Bảo mật khi đưa lên production
 

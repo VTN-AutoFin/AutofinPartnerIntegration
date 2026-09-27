@@ -21,10 +21,13 @@ import { fileURLToPath } from 'node:url';
 import {
   getAccessToken,
   refreshAccessToken,
+  getEndUserToken,
+  refreshEndUserToken,
   getPartnerToken,
   refreshPartnerToken,
   isPartnerAuthConfigured,
   tokenStatus,
+  endUserTokenStatus,
   partnerTokenStatus,
 } from './token-manager.mjs';
 
@@ -41,6 +44,9 @@ const HOP_BY_HOP = new Set([
   'proxy-authenticate', 'proxy-authorization', 'te', 'trailer',
   // cookie client luôn bị bỏ (finserver route ghi đè Authorization bằng machine token)
   'cookie',
+  // Authorization của client KHÔNG BAO GIỜ được đi tiếp: proxy tự gắn token
+  // server-side. Trước đây nhánh forward ẩn danh để header này lọt lên nguồn.
+  'authorization',
   // fetch tự tính lại theo body đã forward
   'content-length',
   // NGÒN ĐỐT: undici (Node 22) crash `assert(!this.paused)` khi giải nén gzip
@@ -110,6 +116,27 @@ app.get(['/embedded/autofin-embed.js', '/embedded/autofin-embed.js.map'], async 
   }
 });
 
+// ------------------------------------------------------- phiên khách (demo)
+// Đối tác thật đã có phiên đăng nhập riêng; ở đây dùng một cookie ký đơn giản
+// để ví dụ chạy được. Điều BẮT BUỘC giữ khi copy sang hệ thống thật: id khách
+// lấy từ phiên phía SERVER, không bao giờ từ header/query/body của trình duyệt.
+const VISITOR_COOKIE = 'demo_visitor';
+
+const readVisitorId = (req) => {
+  const raw = req.headers.cookie || '';
+  const match = raw
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${VISITOR_COOKIE}=`));
+  if (!match) return null;
+  const value = decodeURIComponent(match.slice(VISITOR_COOKIE.length + 1));
+  // Cùng bộ ký tự finserver nhận cho externalUserId.
+  return /^[A-Za-z0-9._:@|-]{1,128}$/.test(value) ? value : null;
+};
+
+// Widget giữ trạng thái riêng từng khách. Các route khác dùng token tổ chức.
+const isEndUserScopedPath = (path) => path.startsWith('/api/gw/v1/chat/');
+
 // ----------------------------------------------------------------- API proxy
 // Browser: /api/gw/v1/x  →  upstream: {FIN_UPSTREAM}/gw/v1/x
 // (FIN_UPSTREAM chứa đủ base+prefix, vd https://host/gateway/api hoặc :3000/api)
@@ -140,14 +167,43 @@ app.all('/api/*', async (req, res) => {
 
   try {
     let upstream;
-    // Token gắn Bearer: ưu tiên PARTNER user token (auto-login từ
-    // PARTNER_CODE/USERNAME/PASSWORD trong .env); fallback org machine token;
-    // không có gì cấu hình/hết hạng → forward anonymous (endpoint public).
-    const getToken = isPartnerAuthConfigured() ? getPartnerToken : getAccessToken;
-    const refreshToken = isPartnerAuthConfigured() ? refreshPartnerToken : refreshAccessToken;
+    // Route chat mang danh tính khách nên phải dùng token riêng của khách đó.
+    // Các route còn lại: ưu tiên PARTNER user token (auto-login từ .env),
+    // fallback org machine token, không có gì thì forward ẩn danh (route public).
+    const endUserScoped = isEndUserScopedPath(req.path);
+    let getToken;
+    let refreshToken;
+    if (endUserScoped) {
+      const visitorId = readVisitorId(req);
+      if (!visitorId) {
+        return res.status(401).type('application/json').send(
+          JSON.stringify({
+            errorCode: 'VISITOR_SESSION_REQUIRED',
+            errorMessage: 'Chua dang nhap khach — widget chat can phien nguoi dung',
+          })
+        );
+      }
+      getToken = () => getEndUserToken(visitorId);
+      refreshToken = () => refreshEndUserToken(visitorId);
+    } else {
+      getToken = isPartnerAuthConfigured() ? getPartnerToken : getAccessToken;
+      refreshToken = isPartnerAuthConfigured() ? refreshPartnerToken : refreshAccessToken;
+    }
     try {
       upstream = await forward(await getToken());
     } catch (tokenErr) {
+      // Chat thì KHÔNG được forward ẩn danh: không có token nghĩa là không có
+      // danh tính khách, mà finserver sẽ từ chối — báo lỗi thẳng cho dễ sửa.
+      if (endUserScoped) {
+        // Chi tiết chỉ vào log server: message upstream có chứa URL API nguồn.
+        console.error(`[proxy] khong lay duoc token cho khach: ${tokenErr.message}`);
+        return res.status(502).type('application/json').send(
+          JSON.stringify({
+            errorCode: 'END_USER_TOKEN_FAILED',
+            errorMessage: 'Khong lay duoc token cho khach — xem log proxy',
+          })
+        );
+      }
       // Org-token module chưa có trên upstream (vd SIT) nhưng /api/gw/v1/*
       // public → forward KHÔNG gắn Bearer thay vì chết 502.
       console.warn(`[proxy] khong co token — forward anonymous: ${tokenErr.message}`);
@@ -203,11 +259,44 @@ app.use('/static', async (req, res) => {
   }
 });
 
+// -------------------------------------------------- phiên khách demo (routes)
+// Thay cho hệ thống đăng nhập thật của đối tác. Chỉ có tác dụng đặt/xoá cookie
+// phía server; trình duyệt không tự chọn được mình là khách nào ở tầng API.
+app.post('/demo/login', (req, res) => {
+  let visitorId = '';
+  try {
+    visitorId = String(JSON.parse(req.body?.toString('utf8') || '{}').visitorId || '').trim();
+  } catch {
+    /* body rỗng/không phải JSON */
+  }
+  if (!/^[A-Za-z0-9._:@|-]{1,128}$/.test(visitorId)) {
+    return res.status(400).json({
+      errorCode: 'VISITOR_ID_INVALID',
+      errorMessage: 'visitorId chi nhan 1-128 ky tu chu, so hoac . _ : @ | -',
+    });
+  }
+  res.set(
+    'Set-Cookie',
+    `${VISITOR_COOKIE}=${encodeURIComponent(visitorId)}; Path=/; HttpOnly; SameSite=Lax`
+  );
+  return res.json({ visitorId });
+});
+
+app.post('/demo/logout', (req, res) => {
+  res.set('Set-Cookie', `${VISITOR_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+  return res.json({ ok: true });
+});
+
+app.get('/demo/me', (req, res) => {
+  return res.json({ visitorId: readVisitorId(req) });
+});
+
 // ------------------------------------------------------------------- healthz
 app.get('/healthz', (req, res) => {
   res.json({
     ok: true,
     token: tokenStatus(),
+    endUserTokens: endUserTokenStatus(),
     partnerAuth: isPartnerAuthConfigured(),
     partnerToken: partnerTokenStatus(),
     upstreams: {

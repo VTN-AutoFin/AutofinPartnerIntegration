@@ -4,6 +4,7 @@ import ProxyApiDemo from '../components/ProxyApiDemo';
 import WidgetHost from '../components/WidgetHost';
 import { mountSnippet } from '../lib/snippet';
 import PageScaffold from './PageScaffold';
+import { PARTNER_CODE } from '../lib/embed';
 
 export default function StockFilterPage() {
   return (
@@ -19,7 +20,7 @@ export default function StockFilterPage() {
     >
       <WidgetHost
         productId="stock-filter"
-        partnerCode="YOUR_PARTNER_CODE"
+        partnerCode={PARTNER_CODE}
         height={480}
         features={{ internalOverlays: false }}
       />

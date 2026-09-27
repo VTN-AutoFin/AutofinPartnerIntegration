@@ -154,3 +154,10 @@ h1 { font-size: 1.35rem; margin: 0 0 8px; }
 }
 .buy { color: #dc2626; }
 .sell { color: #16794a; }
+
+/* ---- chat page ---- */
+.chat-form input {
+  flex: 1; min-width: 0;
+  border: 1px solid var(--line); border-radius: 6px;
+  padding: 6px 10px; font-size: 0.9rem;
+}

@@ -56,9 +56,9 @@ origin proxy, không có request nào tới API nguồn.
 3. [Proxy server](docs/03-proxy-server.md) — từng route, token cache/refresh, deploy.
 4. [Tích hợp widget](docs/04-tich-hop-widget.md) — script tag, mount option, từng loại widget.
 5. [Callbacks](docs/05-callbacks.md) — `onPartnerAction`, mở form đặt lệnh từ event.
-6. [Chat AI](docs/06-chat-ai.md) — **Coming Soon**: chat AI chưa khả dụng ở giai đoạn này (1 tài khoản partner, chưa quản lý user).
+6. [Chat AI](docs/06-chat-ai.md) — token theo từng khách, phiên khách, cô lập lịch sử chat.
 
-Lịch sử thay đổi: [CHANGELOG.md](CHANGELOG.md) — hiện tại **Doc v0.1** (khởi tạo project ví dụ đầy đủ, upstream PROD, gỡ FAC Chat).
+Lịch sử thay đổi: [CHANGELOG.md](CHANGELOG.md) — hiện tại **Doc v0.2** (widget Chat AI với danh tính từng khách).
 
 ## Lưu ý hiện trạng SDK
 

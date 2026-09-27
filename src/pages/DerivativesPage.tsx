@@ -4,6 +4,7 @@ import ProxyApiDemo from '../components/ProxyApiDemo';
 import WidgetHost from '../components/WidgetHost';
 import { mountSnippet } from '../lib/snippet';
 import PageScaffold from './PageScaffold';
+import { PARTNER_CODE } from '../lib/embed';
 
 export default function DerivativesPage() {
   return (
@@ -11,7 +12,7 @@ export default function DerivativesPage() {
       title="Widget Phái sinh (menu-derivatives)"
       intro="Bảng giá hợp đồng tương lai. Mount 1 widget, nhận sự kiện CTA đặt lệnh phái sinh."
     >
-      <WidgetHost productId="menu-derivatives" partnerCode="YOUR_PARTNER_CODE" height={480} />
+      <WidgetHost productId="menu-derivatives" partnerCode={PARTNER_CODE} height={480} />
       <ActionLog />
       <ProxyApiDemo
         path="/api/gw/v1/derivative/days-info"
