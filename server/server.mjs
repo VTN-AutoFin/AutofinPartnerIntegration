@@ -37,6 +37,11 @@ const DIST_DIR = path.resolve(__dirname, '../dist');
 const PORT = Number(process.env.PORT) || 5501;
 const FIN_UPSTREAM = (process.env.FIN_UPSTREAM || 'http://localhost:3000').replace(/\/+$/, '');
 const WEBAPP_UPSTREAM = (process.env.WEBAPP_UPSTREAM || 'http://localhost:4200').replace(/\/+$/, '');
+// Financial Agent Chat — dịch vụ RIÊNG, không phải chat service của /api/gw/v1/chat/*.
+// Bundle remote + API /api/v1/* đều nằm dưới base này.
+const FAC_UPSTREAM = (
+  process.env.FAC_UPSTREAM || 'https://api-sit.autofin.vn:4443/financial-agent'
+).replace(/\/+$/, '');
 
 // Header client gửi lên nhưng KHÔNG được chuyển sang upstream
 const HOP_BY_HOP = new Set([
@@ -63,6 +68,8 @@ const STRIP_RESPONSE_HEADERS = new Set([
 const SDK_FILES = {
   '/embedded/autofin-embed.js': { upstream: () => WEBAPP_UPSTREAM, path: '/embed/autofin-embed.js' },
   '/embedded/autofin-embed.js.map': { upstream: () => WEBAPP_UPSTREAM, path: '/embed/autofin-embed.js.map' },
+  // FAC phục vụ qua proxy để browser không thấy domain AUTOFIN, giống SDK widget.
+  '/embedded/fac-chat.js': { upstream: () => FAC_UPSTREAM, path: '/remote/fac-chat.js' },
 };
 const SDK_CACHE_TTL_MS = 5 * 60 * 1000;
 const sdkCache = new Map(); // key → { body: Buffer, contentType, fetchedAtMs }
@@ -78,7 +85,8 @@ process.on('uncaughtException', (err) => {
 app.use(express.raw({ type: '*/*', limit: '2mb' }));
 
 // ---------------------------------------------------------------- SDK widget
-app.get(['/embedded/autofin-embed.js', '/embedded/autofin-embed.js.map'], async (req, res) => {
+// Route sinh từ SDK_FILES: thêm file mới vào map là đủ, không sót route.
+app.get(Object.keys(SDK_FILES), async (req, res) => {
   const key = req.path;
   const target = SDK_FILES[key];
   const origin = target.upstream();
@@ -135,7 +143,21 @@ const readVisitorId = (req) => {
 };
 
 // Widget giữ trạng thái riêng từng khách. Các route khác dùng token tổ chức.
-const isEndUserScopedPath = (path) => path.startsWith('/api/gw/v1/chat/');
+// /api/v1/* là API của FAC (mount apiBase = origin proxy → FAC gọi về đây).
+const isEndUserScopedPath = (path) =>
+  path.startsWith('/api/gw/v1/chat/') || path.startsWith('/api/v1/');
+
+/**
+ * FAC có upstream riêng VÀ cách ghép path riêng.
+ *
+ * finserver gắn ở `/api`, nên `finPathFromOriginal` bỏ tiền tố đó đi. FAC thì
+ * ngược lại: base của nó đã là `/financial-agent` và API thật nằm ở
+ * `/financial-agent/api/v1/*`, nên phải giữ nguyên `/api`.
+ */
+const resolveUpstream = (originalUrl, path) =>
+  path.startsWith('/api/v1/')
+    ? `${FAC_UPSTREAM}${originalUrl}`
+    : `${FIN_UPSTREAM}${finPathFromOriginal(originalUrl)}`;
 
 // ----------------------------------------------------------------- API proxy
 // Browser: /api/gw/v1/x  →  upstream: {FIN_UPSTREAM}/gw/v1/x
@@ -143,7 +165,7 @@ const isEndUserScopedPath = (path) => path.startsWith('/api/gw/v1/chat/');
 const finPathFromOriginal = (originalUrl) => originalUrl.replace(/^\/api/, '') || '/';
 
 app.all('/api/*', async (req, res) => {
-  const upstreamUrl = `${FIN_UPSTREAM}${finPathFromOriginal(req.originalUrl)}`;
+  const upstreamUrl = resolveUpstream(req.originalUrl, req.path);
 
   const buildHeaders = (token) => {
     const headers = {};
@@ -302,6 +324,7 @@ app.get('/healthz', (req, res) => {
     upstreams: {
       finserver: FIN_UPSTREAM,
       webapp: WEBAPP_UPSTREAM,
+      fac: FAC_UPSTREAM,
     },
     mode: fs.existsSync(DIST_DIR) ? 'prod (dist/)' : 'dev (chỉ proxy — chạy vite riêng)',
   });

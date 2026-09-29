@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import CodeBlock from '../components/CodeBlock';
+import FacChatHost from '../components/FacChatHost';
 import PageScaffold from './PageScaffold';
 
 type Call = { label: string; status: number; ms: number; body: string };
@@ -168,6 +169,8 @@ export default function ChatPage() {
           gửi lên.
         </p>
       </div>
+
+      {visitorId ? <FacChatHost /> : null}
 
       <div className="widget-card">
         <div className="widget-card-title">Danh tính gửi xuống chat service</div>
