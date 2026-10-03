@@ -19,6 +19,7 @@ export type EmbedProductId =
   | 'overlay-stock-detail'
   | 'overlay-index-detail'
   | 'overlay-industry-detail'
+  | 'chatpanel'
   | string;
 
 export type PartnerActionEvent = {

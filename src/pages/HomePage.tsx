@@ -9,7 +9,7 @@ const ARCH = `┌─────────────────────
            │  /api/gw/v1/*
            ▼
 ┌──────────────────────────────┐
-│  Proxy server                │   ← project này: server/server.mjs
+│  Proxy server (BFF)          │   ← project này: server/server.mjs
 │  — serve SDK (cache)         │
 │  — tự gắn Bearer machine     │
 │    token (ORG_CLIENT_ID/     │
@@ -30,6 +30,7 @@ const WIDGETS: Array<{ to: string; label: string; desc: string }> = [
   { to: '/news', label: 'menu-news', desc: 'Tin tức thị trường (autoMount)' },
   { to: '/stock-filter', label: 'stock-filter', desc: 'Bộ lọc cổ phiếu (tắt overlay nội bộ)' },
   { to: '/callbacks', label: 'onPartnerAction', desc: 'Bắt sự kiện → mở form đặt lệnh mẫu' },
+  { to: '/chatpanel', label: 'FAC ChatPanel', desc: 'Chat AI — SDK riêng FacAgentChat, API /api/v1/* qua proxy' },
 ];
 
 export default function HomePage() {
