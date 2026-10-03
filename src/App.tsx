@@ -7,6 +7,7 @@ import BoardPage from './pages/BoardPage';
 import NewsPage from './pages/NewsPage';
 import StockFilterPage from './pages/StockFilterPage';
 import CallbacksPage from './pages/CallbacksPage';
+import ChatPanelPage from './pages/ChatPanelPage';
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
           <Route path="/news" element={<NewsPage />} />
           <Route path="/stock-filter" element={<StockFilterPage />} />
           <Route path="/callbacks" element={<CallbacksPage />} />
+          <Route path="/chatpanel" element={<ChatPanelPage />} />
           <Route path="*" element={<HomePage />} />
         </Route>
       </Routes>
