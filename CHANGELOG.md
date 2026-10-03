@@ -18,3 +18,13 @@ không phát hành npm nên dùng version tài liệu (doc vX.Y).
   - **Tài liệu tiếng Việt** `docs/01…06` + README + CHANGELOG.
 
 [Doc v0.1]: https://www.autofin.vn/
+
+## [Doc v0.2] — 2026-10-03
+
+### Added
+- **Tích hợp lại FAC Chat (AI)** trên upstream PROD: SDK `FacAgentChat`
+  (`/embedded/fac-chat.js` ← `FAC_WEB_UPSTREAM`), API `/api/v1/*` qua proxy
+  (`FAC_API_UPSTREAM`), trang ví dụ `/chatpanel`, Vite dev proxy
+  `/financial-agent`.
+
+[Doc v0.2]: https://www.autofin.vn/
