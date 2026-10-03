@@ -126,7 +126,11 @@ app.all('/financial-agent/api/*', async (req, res) => {
   const upstreamUrl = `${FAC_API_UPSTREAM}${suffix}`;
   const headers = {};
   for (const [name, value] of Object.entries(req.headers)) {
-    if (HOP_BY_HOP.has(name) || value === undefined) continue;
+    if (value === undefined) continue;
+    // FAC backend tự quản phiên: cookie (visitor_id…) PHẢI được forward —
+    // message:stream 401 khi thiếu nó (guard "Authentication required…").
+    if (name === 'cookie') { headers[name] = String(value); continue; }
+    if (HOP_BY_HOP.has(name)) continue;
     headers[name] = Array.isArray(value) ? value.join(', ') : String(value);
   }
   headers['accept-encoding'] = 'identity'; // undici+gzip bug — xem HOP_BY_HOP
@@ -159,7 +163,10 @@ app.all(['/api/v1/*', '/api/v1'], async (req, res) => {
   const upstreamUrl = `${FAC_API_UPSTREAM}${req.originalUrl}`;
   const headers = {};
   for (const [name, value] of Object.entries(req.headers)) {
-    if (HOP_BY_HOP.has(name) || value === undefined) continue;
+    if (value === undefined) continue;
+    // Như route /financial-agent: cookie visitor_id cần cho phiên anonymous.
+    if (name === 'cookie') { headers[name] = String(value); continue; }
+    if (HOP_BY_HOP.has(name)) continue;
     headers[name] = Array.isArray(value) ? value.join(', ') : String(value);
   }
   headers['accept-encoding'] = 'identity'; // undici+gzip bug — xem HOP_BY_HOP
