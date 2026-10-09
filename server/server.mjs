@@ -447,6 +447,11 @@ app.post('/demo/login', (req, res) => {
   } catch {
     /* body rỗng/không phải JSON */
   }
+  // Demo mặc định: DEMO_VISITOR_ID trong .env (id khách demo của đối tác).
+  // Hệ thống thật KHÔNG được có fallback này — id luôn từ phiên đăng nhập.
+  if (!visitorId && process.env.DEMO_VISITOR_ID) {
+    visitorId = String(process.env.DEMO_VISITOR_ID).trim();
+  }
   if (!/^[A-Za-z0-9._:@|-]{1,128}$/.test(visitorId)) {
     return res.status(400).json({
       errorCode: 'VISITOR_ID_INVALID',
