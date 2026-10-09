@@ -154,7 +154,13 @@ const facInflight = new Map();
 const FAC_TTL_S = 25 * 60; // < 30 phút session TTL của FAC → skew an toàn
 
 function facConfig() {
-  const facUpstream = (process.env.FAC_UPSTREAM || 'http://localhost:8002').replace(/\/+$/, '');
+  // Cùng một biến với route /api/v1 của server.mjs (FAC_API_UPSTREAM);
+  // FAC_UPSTREAM chỉ là fallback cho env cũ.
+  const facUpstream = (
+    process.env.FAC_API_UPSTREAM ||
+    process.env.FAC_UPSTREAM ||
+    'http://localhost:8002'
+  ).replace(/\/+$/, '');
   return { facUpstream };
 }
 
