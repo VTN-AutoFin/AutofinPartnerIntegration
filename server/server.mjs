@@ -3,20 +3,27 @@
  *
  * Đây là ĐIỂM TIẾP XÚC DUY NHẤT của browser:
  *   GET /embedded/autofin-embed.js(.map)  → SDK widget (fetch từ WebApp, cache)
+ *   GET /embedded/fac-chat.js             → FAC ChatPanel remote bundle (cache)
+ *   ALL /financial-agent/api/*            → FAC API (SSE stream, cookie qua tay)
+ *   ALL /api/v1/*                         → FAC API — khách: JWT FAC per-visitor
+ *                                           (T5 exchange); staff: Authorization
+ *                                           client nguyên vẹn
  *   ALL /api/*                            → finserver, tự gắn Bearer machine token
+ *                                           (chat khách: token end-user per-visitor)
  *   GET /healthz                          → trạng thái proxy
  *   (prod) static dist/ + SPA fallback    → example app build
  *
- * Browser không bao giờ biết finserver / WebApp tồn tại:
+ * Browser không bao giờ biết finserver / WebApp / FAC tồn tại:
  *  - Không redirect, không CORS expose, không passthrough header lộ nguồn
  *    (server, via, x-powered-by, upstream URL trong lỗi).
- *  - Authorization của client bị GHI ĐÈ bằng machine token server-side;
- *    ORG_CLIENT_ID/SECRET không bao giờ xuống browser.
+ *  - ORG_CLIENT_ID/SECRET không bao giờ xuống browser; token machine và JWT
+ *    FAC đều do proxy gắn server-side.
  */
 
 import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
+import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import {
   getAccessToken,
@@ -40,21 +47,18 @@ const DIST_DIR = path.resolve(__dirname, '../dist');
 const PORT = Number(process.env.PORT) || 5501;
 const FIN_UPSTREAM = (process.env.FIN_UPSTREAM || 'http://localhost:3000').replace(/\/+$/, '');
 const WEBAPP_UPSTREAM = (process.env.WEBAPP_UPSTREAM || 'http://localhost:4200').replace(/\/+$/, '');
-// Financial Agent Chat — dịch vụ RIÊNG, không phải chat service của /api/gw/v1/chat/*.
-// Bundle remote + API /api/v1/* đều nằm dưới base này.
-const FAC_UPSTREAM = (
-  process.env.FAC_UPSTREAM || 'https://api-sit.autofin.vn:4443/financial-agent'
-).replace(/\/+$/, '');
+// FAC ChatPanel remote bundle (window.FacAgentChat) — served by the FAC frontend.
+const FAC_WEB_UPSTREAM = (process.env.FAC_WEB_UPSTREAM || 'http://localhost:5173').replace(/\/+$/, '');
+// FAC backend (API /api/v1/* + /auth/central/exchange).
+const FAC_API_UPSTREAM = (process.env.FAC_API_UPSTREAM || 'http://localhost:8002').replace(/\/+$/, '');
 
 // Header client gửi lên nhưng KHÔNG được chuyển sang upstream
 const HOP_BY_HOP = new Set([
   'host', 'connection', 'keep-alive', 'transfer-encoding', 'upgrade',
   'proxy-authenticate', 'proxy-authorization', 'te', 'trailer',
-  // cookie client luôn bị bỏ (finserver route ghi đè Authorization bằng machine token)
+  // cookie client luôn bị bỏ (finserver route ghi đè Authorization bằng machine
+  // token; FAC route tự quyết định Authorization — xem route /api/v1)
   'cookie',
-  // Authorization của client KHÔNG BAO GIỜ được đi tiếp: proxy tự gắn token
-  // server-side. Trước đây nhánh forward ẩn danh để header này lọt lên nguồn.
-  'authorization',
   // fetch tự tính lại theo body đã forward
   'content-length',
   // NGÒN ĐỐT: undici (Node 22) crash `assert(!this.paused)` khi giải nén gzip
@@ -72,7 +76,7 @@ const SDK_FILES = {
   '/embedded/autofin-embed.js': { upstream: () => WEBAPP_UPSTREAM, path: '/embed/autofin-embed.js' },
   '/embedded/autofin-embed.js.map': { upstream: () => WEBAPP_UPSTREAM, path: '/embed/autofin-embed.js.map' },
   // FAC phục vụ qua proxy để browser không thấy domain AUTOFIN, giống SDK widget.
-  '/embedded/fac-chat.js': { upstream: () => FAC_UPSTREAM, path: '/remote/fac-chat.js' },
+  '/embedded/fac-chat.js': { upstream: () => FAC_WEB_UPSTREAM, path: '/remote/fac-chat.js' },
 };
 const SDK_CACHE_TTL_MS = 5 * 60 * 1000;
 const sdkCache = new Map(); // key → { body: Buffer, contentType, fetchedAtMs }
@@ -145,34 +149,179 @@ const readVisitorId = (req) => {
   return /^[A-Za-z0-9._:@|-]{1,128}$/.test(value) ? value : null;
 };
 
-// Widget giữ trạng thái riêng từng khách. Các route khác dùng token tổ chức.
-// /api/v1/* là API của FAC (mount apiBase = origin proxy → FAC gọi về đây).
-const isEndUserScopedPath = (path) =>
-  path.startsWith('/api/gw/v1/chat/') || path.startsWith('/api/v1/');
+// ------------------------------------------------------------- FAC API proxy
+// fac-chat.js bundle SIT build có VITE_API_BASE=/financial-agent → browser gọi
+// /financial-agent/api/v1/* (shape SIT, như WebApp route handler). Forward giữ
+// nguyên suffix sang FAC_API_UPSTREAM (đã gồm /financial-agent). Route này
+// STREAM (pipe) — SSE chat /message:stream không được buffer.
+//
+// AUTH QUYẾT THEO PHIÊN (giữ cách nhánh hiện tại làm auth cho khách):
+//  - KHÁCH (cookie demo_visitor): proxy TỰ gắn JWT FAC per-visitor — override
+//    mọi Authorization client gửi lên (browser không bao giờ giữ token FAC).
+//  - KHÔNG khách: forward nguyên vẹn (Authorization + cookie) — FAC backend
+//    tự quản phiên cho staff/partner dùng panel trực tiếp.
+app.all('/financial-agent/api/*', async (req, res) => {
+  const suffix = req.originalUrl.replace(/^\/financial-agent/, '');
+  const upstreamUrl = `${FAC_API_UPSTREAM}${suffix}`;
+  const visitorId = readVisitorId(req);
 
-// API FAC (/api/v1/*) đi bằng JWT FAC của khách, không phải token end-user
-// của finserver — FAC chỉ nhận JWT do chính nó mint sau khi exchange.
-const isFacPath = (path) => path.startsWith('/api/v1/');
+  const buildHeaders = (token) => {
+    const headers = {};
+    for (const [name, value] of Object.entries(req.headers)) {
+      if (value === undefined) continue;
+      // FAC backend tự quản phiên: cookie (visitor_id…) PHẢI được forward —
+      // message:stream 401 khi thiếu nó (guard "Authentication required…").
+      if (name === 'cookie') { headers[name] = String(value); continue; }
+      if (HOP_BY_HOP.has(name)) continue;
+      headers[name] = Array.isArray(value) ? value.join(', ') : String(value);
+    }
+    // Khách: token là của proxy, không của browser.
+    if (visitorId && token) headers['authorization'] = `Bearer ${token}`;
+    headers['accept-encoding'] = 'identity'; // undici+gzip bug — xem HOP_BY_HOP
+    return headers;
+  };
 
-/**
- * FAC có upstream riêng VÀ cách ghép path riêng.
- *
- * finserver gắn ở `/api`, nên `finPathFromOriginal` bỏ tiền tố đó đi. FAC thì
- * ngược lại: base của nó đã là `/financial-agent` và API thật nằm ở
- * `/financial-agent/api/v1/*`, nên phải giữ nguyên `/api`.
- */
-const resolveUpstream = (originalUrl, path) =>
-  path.startsWith('/api/v1/')
-    ? `${FAC_UPSTREAM}${originalUrl}`
-    : `${FIN_UPSTREAM}${finPathFromOriginal(originalUrl)}`;
+  const forward = async (token) => {
+    const body =
+      req.method === 'GET' || req.method === 'HEAD' || !req.body || req.body.length === 0
+        ? undefined
+        : req.body;
+    return fetch(upstreamUrl, { method: req.method, headers: buildHeaders(token), body });
+  };
+
+  try {
+    let upstream;
+    let refreshToken = null;
+    if (visitorId) {
+      try {
+        upstream = await forward(await getFacToken(visitorId));
+      } catch (tokenErr) {
+        console.error(`[proxy] khong exchange duoc JWT FAC cho khach: ${tokenErr.message}`);
+        return res.status(502).type('application/json').send(
+          JSON.stringify({
+            errorCode: 'FAC_EXCHANGE_FAILED',
+            errorMessage: 'Khong lay duoc JWT FAC cho khach — xem log proxy',
+          })
+        );
+      }
+      refreshToken = () => refreshFacToken(visitorId);
+    } else {
+      upstream = await forward(null);
+    }
+
+    // 401 → JWT hết phiên (TTL 30'): exchange lại đúng 1 lần rồi thử lại.
+    if (upstream.status === 401 && refreshToken) {
+      try {
+        upstream = await forward(await refreshToken());
+      } catch {
+        /* giữ response 401 gốc */
+      }
+    }
+
+    const resHeaders = {};
+    upstream.headers.forEach((value, name) => {
+      if (!STRIP_RESPONSE_HEADERS.has(name.toLowerCase())) resHeaders[name] = value;
+    });
+    res.status(upstream.status).set(resHeaders);
+    if (upstream.body) {
+      Readable.fromWeb(upstream.body).pipe(res);
+    } else {
+      res.end();
+    }
+  } catch {
+    return res.status(502).type('application/json').send(
+      JSON.stringify({ errorMessage: 'Proxy khong goi duoc FAC API' })
+    );
+  }
+});
+
+// (phiên khách demo — helpers VISITOR_COOKIE / readVisitorId ở trên,
+//  dùng chung cho FAC routes + route chat của finserver)
+
+// FAC ChatPanel (/api/v1/*):
+//  - KHÁCH (cookie demo_visitor): proxy tự gắn JWT FAC per-visitor (T5 partner
+//    visitor — đổi end-user token lấy JWT ở /auth/central/exchange rồi cache;
+//    FAC tự materialize user khách vào org đối tác). Browser không giữ token.
+//  - KHÔNG khách (staff/partner dùng panel trực tiếp): Authorization client
+//    được forward nguyên vẹn — FAC backend tự quản phiên (login/SSE).
+app.all(['/api/v1/*', '/api/v1'], async (req, res) => {
+  const upstreamUrl = `${FAC_API_UPSTREAM}${req.originalUrl}`;
+  const visitorId = readVisitorId(req);
+
+  const buildHeaders = (token) => {
+    const headers = {};
+    for (const [name, value] of Object.entries(req.headers)) {
+      if (value === undefined) continue;
+      // Cookie visitor phục vụ phiên anonymous của FAC — luôn qua tay.
+      if (name === 'cookie') { headers[name] = String(value); continue; }
+      if (HOP_BY_HOP.has(name)) continue;
+      headers[name] = Array.isArray(value) ? value.join(', ') : String(value);
+    }
+    if (visitorId && token) headers['authorization'] = `Bearer ${token}`;
+    headers['accept-encoding'] = 'identity'; // undici+gzip bug — xem HOP_BY_HOP
+    return headers;
+  };
+
+  const forward = async (token) => {
+    const body =
+      req.method === 'GET' || req.method === 'HEAD' || !req.body || req.body.length === 0
+        ? undefined
+        : req.body;
+    return fetch(upstreamUrl, { method: req.method, headers: buildHeaders(token), body });
+  };
+
+  try {
+    let upstream;
+    let refreshToken = null;
+    if (visitorId) {
+      try {
+        upstream = await forward(await getFacToken(visitorId));
+      } catch (tokenErr) {
+        console.error(`[proxy] khong exchange duoc JWT FAC cho khach: ${tokenErr.message}`);
+        return res.status(502).type('application/json').send(
+          JSON.stringify({
+            errorCode: 'FAC_EXCHANGE_FAILED',
+            errorMessage: 'Khong lay duoc JWT FAC cho khach — xem log proxy',
+          })
+        );
+      }
+      refreshToken = () => refreshFacToken(visitorId);
+    } else {
+      upstream = await forward(null);
+    }
+
+    // 401 → JWT hết phiên (TTL 30'): exchange lại đúng 1 lần rồi thử lại.
+    if (upstream.status === 401 && refreshToken) {
+      try {
+        upstream = await forward(await refreshToken());
+      } catch {
+        /* giữ response 401 gốc */
+      }
+    }
+
+    const resHeaders = {};
+    upstream.headers.forEach((value, name) => {
+      if (!STRIP_RESPONSE_HEADERS.has(name.toLowerCase())) resHeaders[name] = value;
+    });
+    res.status(upstream.status).set(resHeaders);
+    return res.send(Buffer.from(await upstream.arrayBuffer()));
+  } catch {
+    return res.status(502).type('application/json').send(
+      JSON.stringify({ errorMessage: 'Proxy khong goi duoc FAC API' })
+    );
+  }
+});
 
 // ----------------------------------------------------------------- API proxy
 // Browser: /api/gw/v1/x  →  upstream: {FIN_UPSTREAM}/gw/v1/x
 // (FIN_UPSTREAM chứa đủ base+prefix, vd https://host/gateway/api hoặc :3000/api)
 const finPathFromOriginal = (originalUrl) => originalUrl.replace(/^\/api/, '') || '/';
 
+// Widget giữ trạng thái riêng từng khách cho chat của finserver.
+const isChatPath = (path) => path.startsWith('/api/gw/v1/chat/');
+
 app.all('/api/*', async (req, res) => {
-  const upstreamUrl = resolveUpstream(req.originalUrl, req.path);
+  const upstreamUrl = `${FIN_UPSTREAM}${finPathFromOriginal(req.originalUrl)}`;
 
   const buildHeaders = (token) => {
     const headers = {};
@@ -199,10 +348,10 @@ app.all('/api/*', async (req, res) => {
     // Route chat mang danh tính khách nên phải dùng token riêng của khách đó.
     // Các route còn lại: ưu tiên PARTNER user token (auto-login từ .env),
     // fallback org machine token, không có gì thì forward ẩn danh (route public).
-    const endUserScoped = isEndUserScopedPath(req.path);
+    const visitorScoped = isChatPath(req.path);
     let getToken;
     let refreshToken;
-    if (endUserScoped) {
+    if (visitorScoped) {
       const visitorId = readVisitorId(req);
       if (!visitorId) {
         return res.status(401).type('application/json').send(
@@ -212,17 +361,8 @@ app.all('/api/*', async (req, res) => {
           })
         );
       }
-      if (isFacPath(req.path)) {
-        // FAC API (/api/v1/*): JWT FAC của khách (T5 partner visitor —
-        // proxy đổi end-user token lấy JWT ở /auth/central/exchange rồi
-        // cache; FAC tự materialize user khách vào org đối tác).
-        getToken = () => getFacToken(visitorId);
-        refreshToken = () => refreshFacToken(visitorId);
-      } else {
-        // Chat service của finserver: token end-user gốc.
-        getToken = () => getEndUserToken(visitorId);
-        refreshToken = () => refreshEndUserToken(visitorId);
-      }
+      getToken = () => getEndUserToken(visitorId);
+      refreshToken = () => refreshEndUserToken(visitorId);
     } else {
       getToken = isPartnerAuthConfigured() ? getPartnerToken : getAccessToken;
       refreshToken = isPartnerAuthConfigured() ? refreshPartnerToken : refreshAccessToken;
@@ -232,7 +372,7 @@ app.all('/api/*', async (req, res) => {
     } catch (tokenErr) {
       // Chat thì KHÔNG được forward ẩn danh: không có token nghĩa là không có
       // danh tính khách, mà finserver sẽ từ chối — báo lỗi thẳng cho dễ sửa.
-      if (endUserScoped) {
+      if (visitorScoped) {
         // Chi tiết chỉ vào log server: message upstream có chứa URL API nguồn.
         console.error(`[proxy] khong lay duoc token cho khach: ${tokenErr.message}`);
         return res.status(502).type('application/json').send(
@@ -341,7 +481,8 @@ app.get('/healthz', (req, res) => {
     upstreams: {
       finserver: FIN_UPSTREAM,
       webapp: WEBAPP_UPSTREAM,
-      fac: FAC_UPSTREAM,
+      facWeb: FAC_WEB_UPSTREAM,
+      facApi: FAC_API_UPSTREAM,
     },
     mode: fs.existsSync(DIST_DIR) ? 'prod (dist/)' : 'dev (chỉ proxy — chạy vite riêng)',
   });
@@ -357,5 +498,7 @@ if (fs.existsSync(DIST_DIR)) {
 app.listen(PORT, () => {
   console.log(`[proxy] listening http://localhost:${PORT}`);
   console.log(`[proxy] SDK     ${WEBAPP_UPSTREAM}/embed/* → /embedded/autofin-embed.js`);
+  console.log(`[proxy] FAC js  ${FAC_WEB_UPSTREAM}/remote/fac-chat.js → /embedded/fac-chat.js`);
+  console.log(`[proxy] FAC API ${FAC_API_UPSTREAM} ← /api/v1/* + /financial-agent/api/*`);
   console.log(`[proxy] API     ${FIN_UPSTREAM}/api/* → /api/* (Bearer machine token)`);
 });
