@@ -23,6 +23,24 @@ Khác với route `/api/gw/*` của finserver: route FAC **không gắn machine 
 FAC backend tự quản phiên đăng nhập; header `Authorization` của client (nếu có)
 được forward nguyên vẹn.
 
+### Proxy biết chat với khách nào (danh tính từng khách)
+
+Widget chat cần mỗi khách một lịch sử + workspace riêng. Proxy quyết định danh
+tính theo **cookie phiên khách** (`demo_visitor`, do server đặt — browser không
+tự chọn được):
+
+| Có cookie khách? | Proxy làm gì |
+|---|---|
+| **Có** | Gắn JWT FAC per-visitor (đổi end-user token lấy JWT ở `/auth/central/exchange`, cache 25') — ghi đè mọi `Authorization` client. FAC tự tạo user khách trong org đối tác (T5 partner visitor). |
+| **Không** | Forward `Authorization` nguyên vẹn — staff/partner dùng panel trực tiếp, FAC tự quản phiên. |
+
+> **Đây là project VÍ DỤ.** Trong project này id khách chỉ để demo
+> (`/demo/login`, fallback `DEMO_VISITOR_ID` trong `.env`). Tích hợp thật:
+> **không đặt id khách trong env** — backend đối tác quyết định id khách
+> **trong code** (từ phiên đăng nhập thật của hệ họ) rồi mới đặt cookie phiên /
+> gọi `/api/org/token`. Id khách luôn từ phiên SERVER, không bao giờ từ
+> header/query/body trình duyệt.
+
 ## Nhúng 3 bước (HTML thuần)
 
 ```html

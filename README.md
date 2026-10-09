@@ -1,5 +1,9 @@
 # AUTOFIN Widget — Ví dụ tích hợp cho đối tác
 
+> **Đây là project VÍ DỤ (example)** — mục đích: đối tác đọc code + docs rồi tự
+> tích hợp vào hệ thống của mình. Các chi tiết chỉ có ở demo (trang ví dụ,
+> `/demo/login`, biến `DEMO_VISITOR_ID`) **không mang sang production**.
+
 Project mẫu giúp đối tác tích hợp **AUTOFIN Widget** vào hệ thống của mình:
 
 1. **Proxy server (Backend-for-Frontend)** — điểm tiếp xúc duy nhất của browser. Server này:
@@ -9,6 +13,17 @@ Project mẫu giúp đối tác tích hợp **AUTOFIN Widget** vào hệ thống
 2. **Example app (Vite + React)** — nhiều trang, mỗi trang mount một widget ví dụ
    (phái sinh, tín hiệu, bảng điện, tin tức, bộ lọc cổ phiếu, callbacks đặt lệnh).
 3. **Tài liệu tiếng Việt** trong [`docs/`](docs/).
+
+## Id khách (end user) — nguyên tắc quan trọng nhất
+
+- **Không đặt id khách trong `.env` khi tích hợp thật.** `DEMO_VISITOR_ID` chỉ
+  là tiện ích demo của project này.
+- **Backend đối tác quyết định id khách trong code**: lấy id từ phiên đăng nhập
+  thật của hệ họ (user id trong session/JWT nội bộ) rồi server-side mới gọi
+  `/api/org/token {externalUserId}` hoặc đặt cookie phiên khách.
+- Id khách luôn đến từ **phiên phía SERVER** — không bao giờ nhận từ
+  header/query/body do browser gửi (browser không thể tự nhận mình là khách
+  khác, vì AUTOFIN ký `externalUserId` vào token).
 
 ## Kiến trúc
 

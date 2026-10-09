@@ -77,7 +77,14 @@ Authorization: Basic base64(ORG_CLIENT_ID:ORG_CLIENT_SECRET)
 
 AUTOFIN ký `externalUserId` vào token, nên trình duyệt không thể tự nhận mình là
 khách khác. **Id khách phải lấy từ phiên phía server của đối tác**, không bao giờ từ
-header/query/body của trình duyệt. Chi tiết: [Chat AI widget](06-chat-ai.md).
+header/query/body của trình duyệt. Chi tiết: [FAC ChatPanel](06-fac-chatpanel.md).
+
+> **Đây là project VÍ DỤ.** `/demo/login` + biến `DEMO_VISITOR_ID` trong `.env`
+> chỉ tồn tại để demo chạy được mà không cần hệ thống đăng nhập thật. Khi tích
+> hợp thật: **KHÔNG đặt id khách vào env** — backend đối tác tự quyết định id
+> khách **trong code** (lấy từ phiên đăng nhập của hệ họ, ví dụ user id trong
+> session/JWT của đối tác) rồi mới gọi `/api/org/token`. Fallback `DEMO_VISITOR_ID`
+> phải bị bỏ khi lên production.
 
 ## Vì sao API nguồn được giấu hoàn toàn
 

@@ -17,12 +17,51 @@ dễ đọc và tự sở hữu.
 
 1. Bỏ header client không được chuyển tiếp: `authorization`, `cookie`,
    hop-by-hop (`connection`, `keep-alive`, `transfer-encoding`, …), `content-length`.
-2. Lấy machine token từ `token-manager` → đặt `Authorization: Bearer <token>`
-   (ghi đè bất kỳ gì client gửi).
+2. Chọn token theo route (từ `token-manager`), ghi đè bất kỳ gì client gửi:
+   - **Route chat** (`/api/gw/v1/chat/*`) + có cookie khách → **end-user token
+     per-visitor** (`POST /api/org/token {externalUserId}`).
+   - Còn lại → **machine token tổ chức**.
 3. `fetch(`${FIN_UPSTREAM}${req.originalUrl}`)` giữ nguyên method/path/query/body.
-4. Nếu upstream trả **401** → `refreshAccessToken()` và retry **đúng 1 lần**.
+4. Nếu upstream trả **401** → refresh token và retry **đúng 1 lần**.
 5. Response: strip `server`, `via`, `x-powered-by`, `content-encoding`…;
    lỗi 502 trả message tổng quát — **không chứa URL nguồn**.
+
+### `GET /embedded/fac-chat.js`
+
+- Fetch `${FAC_WEB_UPSTREAM}/remote/fac-chat.js`, cache 5 phút — bundle chat AI.
+- Chi tiết mount: [FAC ChatPanel](06-fac-chatpanel.md).
+
+### `ALL /financial-agent/api/*` (STREAM)
+
+- Forward nguyên suffix sang `${FAC_API_UPSTREAM}` bằng **pipe** (SSE
+  `/message:stream` không được buffer).
+- Auth theo phiên khách (cookie `demo_visitor`, xem dưới):
+  - **Có khách** → proxy tự gắn JWT FAC per-visitor, ghi đè mọi
+    `Authorization` client gửi.
+  - **Không khách** → forward nguyên vẹn (staff/partner dùng panel trực tiếp).
+
+### `ALL /api/v1/*` (buffered)
+
+- Cùng logic auth như trên, forward sang `${FAC_API_UPSTREAM}`.
+- JWT FAC per-visitor: proxy đổi end-user token lấy JWT tại
+  `POST {FAC_API_UPSTREAM}/api/v1/auth/central/exchange`, cache **25 phút**
+  (T5 partner visitor — FAC tự materialize user khách vào org đối tác).
+
+### `POST /demo/login` / `POST /demo/logout` / `GET /demo/me`
+
+Phiên khách **demo** — thay cho hệ thống đăng nhập thật của đối tác:
+
+- `/demo/login` nhận `{visitorId}` (tuỳ chọn) và đặt cookie **ký** 
+  `demo_visitor` phía server; browser không tự chọn được mình là khách nào ở
+  tầng API.
+- Fallback `DEMO_VISITOR_ID` trong `.env` **chỉ để demo**.
+
+> **Project VÍ DỤ — production KHÔNG dùng `/demo/login` và KHÔNG đặt id khách
+> trong env.** Backend đối tác tự quyết định id khách **trong code**: lấy id từ
+> phiên đăng nhập thật của hệ họ (session/JWT nội bộ) rồi đặt cookie phiên
+> khách (hoặc tự gọi `/api/org/token`) ngay tại server của mình. Nguyên tắc
+> bất di bất dịch: id khách luôn đến từ phiên phía SERVER, không bao giờ từ
+> header/query/body trình duyệt.
 
 ### `GET /healthz`
 
@@ -30,7 +69,10 @@ dễ đọc và tự sở hữu.
 {
   "ok": true,
   "token": { "cached": true, "expiresInSeconds": 3120 },
-  "mode": "prod (dist/)"
+  "endUserTokens": { "cached": 1, "inflight": 0 },
+  "facTokens": { "cached": 1, "inflight": 0 },
+  "partnerAuth": false,
+  "upstreams": { "finserver": "...", "webapp": "...", "facWeb": "...", "facApi": "..." }
 }
 ```
 
@@ -40,6 +82,8 @@ Nếu `dist/` tồn tại: serve example app build + SPA fallback về `index.ht
 (trừ `/api`, `/embedded`).
 
 ## Token manager
+
+Machine token tổ chức:
 
 ```
 getAccessToken()      → cache còn hạn: trả ngay; hết hạn: fetch mới (dedup concurrent)
@@ -51,6 +95,16 @@ tokenStatus()         → trạng thái cho /healthz, không tự fetch
   `Authorization: Basic base64(clientId:clientSecret)`.
 - Cache đến `expiresIn − 60s` (mặc định 1 giờ → cache ~59 phút).
 - Credential đọc từ env `ORG_CLIENT_ID` / `ORG_CLIENT_SECRET` — **chỉ server**.
+
+End-user token theo khách (chat) + JWT FAC (T5):
+
+```
+getEndUserToken(visitorId)  → token scope "org_data end_user" cho 1 khách, cache riêng từng khách
+getFacToken(visitorId)      → đổi end-user token lấy JWT FAC ở /auth/central/exchange, cache 25'
+```
+
+- Key cache = `visitorId` đến từ cookie phiên khách (server-side) — có cap số
+  lượng khách giữ token để không phình memory.
 
 ## Tuỳ biến
 
