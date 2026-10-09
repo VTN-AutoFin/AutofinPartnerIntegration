@@ -139,6 +139,79 @@ export async function refreshEndUserToken(externalUserId) {
 }
 
 // ---------------------------------------------------------------------------
+// FAC JWT cho khách (T5 partner visitor) — server-side duy nhất.
+//
+// Đổi token tổ chức (mang externalUserId) lấy JWT của FAC qua
+// POST {FAC_UPSTREAM}/api/v1/auth/central/exchange  (Authorization: Bearer
+// end-user token). FAC tự introspect token ở finserver rồi tạo/tra cứu user
+// khách trong org đối tác (end-user-identity.md). JWT của FAC KHÔNG có exp
+// (phiên do FAC quản, TTL 30 phút) nên cache theo TTL đó trừ skew; hết hạn →
+// exchange lại (giống refresh).
+// ---------------------------------------------------------------------------
+
+const facCache = new Map(); // externalUserId → { token, expiresAtMs }
+const facInflight = new Map();
+const FAC_TTL_S = 25 * 60; // < 30 phút session TTL của FAC → skew an toàn
+
+function facConfig() {
+  const facUpstream = (process.env.FAC_UPSTREAM || 'http://localhost:8002').replace(/\/+$/, '');
+  return { facUpstream };
+}
+
+async function requestFacToken(externalUserId) {
+  const { facUpstream } = facConfig();
+  const endUserToken = await getEndUserToken(externalUserId);
+  const res = await fetch(`${facUpstream}/api/v1/auth/central/exchange`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${endUserToken}`,
+      'content-type': 'application/json',
+      'accept-encoding': 'identity',
+    },
+    body: '{}',
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`FAC exchange HTTP ${res.status}: ${detail.slice(0, 200)}`);
+  }
+  const json = await res.json();
+  if (!json?.access_token) throw new Error('FAC exchange thiếu access_token');
+  return {
+    token: json.access_token,
+    expiresAtMs: Date.now() + FAC_TTL_S * 1000,
+  };
+}
+
+/** JWT FAC cho khách — exchange lần đầu, cache tới hết TTL rồi exchange lại. */
+export async function getFacToken(externalUserId) {
+  if (!externalUserId) throw new Error('Thiếu externalUserId');
+
+  const hit = facCache.get(externalUserId);
+  if (hit && Date.now() < hit.expiresAtMs) return hit.token;
+
+  let pending = facInflight.get(externalUserId);
+  if (!pending) {
+    pending = requestFacToken(externalUserId)
+      .then((entry) => {
+        if (facCache.size >= MAX_END_USER_ENTRIES) {
+          facCache.delete(facCache.keys().next().value);
+        }
+        facCache.set(externalUserId, entry);
+        return entry.token;
+      })
+      .finally(() => facInflight.delete(externalUserId));
+    facInflight.set(externalUserId, pending);
+  }
+  return pending;
+}
+
+/** Gọi khi FAC trả 401 — exchange lại từ token end-user mới. */
+export async function refreshFacToken(externalUserId) {
+  facCache.delete(externalUserId);
+  return getFacToken(externalUserId);
+}
+
+// ---------------------------------------------------------------------------
 // Partner auto-login (user token) — server-side duy nhất.
 //
 // POST {AUTH_API_BASE|FIN_UPSTREAM}/auth/partner-sign-in
@@ -239,6 +312,11 @@ export function tokenStatus() {
 /** Cho /healthz — số khách đang giữ token. */
 export function endUserTokenStatus() {
   return { cached: endUserCache.size, inflight: endUserInflight.size };
+}
+
+/** Cho /healthz — số khách đang giữ JWT FAC. */
+export function facTokenStatus() {
+  return { cached: facCache.size, inflight: facInflight.size };
 }
 
 /** Cho /healthz — trạng thái partner token. */

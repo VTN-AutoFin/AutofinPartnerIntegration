@@ -23,11 +23,14 @@ import {
   refreshAccessToken,
   getEndUserToken,
   refreshEndUserToken,
+  getFacToken,
+  refreshFacToken,
   getPartnerToken,
   refreshPartnerToken,
   isPartnerAuthConfigured,
   tokenStatus,
   endUserTokenStatus,
+  facTokenStatus,
   partnerTokenStatus,
 } from './token-manager.mjs';
 
@@ -147,6 +150,10 @@ const readVisitorId = (req) => {
 const isEndUserScopedPath = (path) =>
   path.startsWith('/api/gw/v1/chat/') || path.startsWith('/api/v1/');
 
+// API FAC (/api/v1/*) đi bằng JWT FAC của khách, không phải token end-user
+// của finserver — FAC chỉ nhận JWT do chính nó mint sau khi exchange.
+const isFacPath = (path) => path.startsWith('/api/v1/');
+
 /**
  * FAC có upstream riêng VÀ cách ghép path riêng.
  *
@@ -205,8 +212,17 @@ app.all('/api/*', async (req, res) => {
           })
         );
       }
-      getToken = () => getEndUserToken(visitorId);
-      refreshToken = () => refreshEndUserToken(visitorId);
+      if (isFacPath(req.path)) {
+        // FAC API (/api/v1/*): JWT FAC của khách (T5 partner visitor —
+        // proxy đổi end-user token lấy JWT ở /auth/central/exchange rồi
+        // cache; FAC tự materialize user khách vào org đối tác).
+        getToken = () => getFacToken(visitorId);
+        refreshToken = () => refreshFacToken(visitorId);
+      } else {
+        // Chat service của finserver: token end-user gốc.
+        getToken = () => getEndUserToken(visitorId);
+        refreshToken = () => refreshEndUserToken(visitorId);
+      }
     } else {
       getToken = isPartnerAuthConfigured() ? getPartnerToken : getAccessToken;
       refreshToken = isPartnerAuthConfigured() ? refreshPartnerToken : refreshAccessToken;
@@ -319,6 +335,7 @@ app.get('/healthz', (req, res) => {
     ok: true,
     token: tokenStatus(),
     endUserTokens: endUserTokenStatus(),
+    facTokens: facTokenStatus(),
     partnerAuth: isPartnerAuthConfigured(),
     partnerToken: partnerTokenStatus(),
     upstreams: {
