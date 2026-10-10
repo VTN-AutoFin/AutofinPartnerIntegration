@@ -79,11 +79,11 @@ AUTOFIN ký `externalUserId` vào token, nên trình duyệt không thể tự n
 khách khác. **Id khách phải lấy từ phiên phía server của đối tác**, không bao giờ từ
 header/query/body của trình duyệt. Chi tiết: [FAC ChatPanel](06-fac-chatpanel.md).
 
-> **Đây là project VÍ DỤ.** `/demo/login` + biến `ORG_END_USER_ID` trong `.env`
+> **Đây là project VÍ DỤ.** `/demo/login` + `VITE_ORG_END_USER_ID` (build time)
 > chỉ tồn tại để demo chạy được mà không cần hệ thống đăng nhập thật. Khi tích
 > hợp thật: **KHÔNG đặt id khách vào env** — backend đối tác tự quyết định id
 > khách **trong code** (lấy từ phiên đăng nhập của hệ họ, ví dụ user id trong
-> session/JWT của đối tác) rồi mới gọi `/api/org/token`. Fallback `ORG_END_USER_ID`
+> session/JWT của đối tác) rồi mới gọi `/api/org/token`. Biến `VITE_ORG_END_USER_ID`
 > phải bị bỏ khi lên production.
 
 ## Vì sao API nguồn được giấu hoàn toàn

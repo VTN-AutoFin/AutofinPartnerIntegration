@@ -2,7 +2,7 @@
 
 > **Đây là project VÍ DỤ (example)** — mục đích: đối tác đọc code + docs rồi tự
 > tích hợp vào hệ thống của mình. Các chi tiết chỉ có ở demo (trang ví dụ,
-> `/demo/login`, biến `ORG_END_USER_ID`) **không mang sang production**.
+> `/demo/login`, biến `VITE_ORG_END_USER_ID`) **không mang sang production**.
 
 Project mẫu giúp đối tác tích hợp **AUTOFIN Widget** vào hệ thống của mình:
 
@@ -16,8 +16,9 @@ Project mẫu giúp đối tác tích hợp **AUTOFIN Widget** vào hệ thống
 
 ## Id khách (end user) — nguyên tắc quan trọng nhất
 
-- **Không đặt id khách trong `.env` khi tích hợp thật.** `ORG_END_USER_ID` chỉ
-  là tiện ích demo của project này.
+- **Không đặt id khách trong `.env` khi tích hợp thật.** `VITE_ORG_END_USER_ID`
+  chỉ là tiện ích demo của project này (proxy KHÔNG có fallback env — id phải
+  được gửi tường minh).
 - **Backend đối tác quyết định id khách trong code**: lấy id từ phiên đăng nhập
   thật của hệ họ (user id trong session/JWT nội bộ) rồi server-side mới gọi
   `/api/org/token {externalUserId}` hoặc đặt cookie phiên khách.
@@ -25,9 +26,9 @@ Project mẫu giúp đối tác tích hợp **AUTOFIN Widget** vào hệ thống
   header/query/body do browser gửi (browser không thể tự nhận mình là khách
   khác, vì AUTOFIN ký `externalUserId` vào token).
 
-### Hai góc nhìn của trang chat (chọn bằng `ORG_END_USER_ID`)
+### Hai góc nhìn của trang chat (chọn bằng `VITE_ORG_END_USER_ID`)
 
-| `ORG_END_USER_ID` / `VITE_ORG_END_USER_ID` | Góc nhìn | Hành vi |
+| `VITE_ORG_END_USER_ID` (build time) | Góc nhìn | Hành vi |
 |---|---|---|
 | **CÓ giá trị** (vd `kh-001`) | **End-user** | Trang tự đăng nhập id đó (`/demo/login`) → chat per-visitor: mỗi khách lịch sử + workspace riêng trong org |
 | **Trống** | **Partner** | Không tạo phiên khách — proxy forward nguyên vẹn `Authorization`, staff/partner đăng nhập FAC tự quản phiên panel |

@@ -446,11 +446,8 @@ app.post('/demo/login', (req, res) => {
   } catch {
     /* body rỗng/không phải JSON */
   }
-  // Demo mặc định: ORG_END_USER_ID trong .env (id khách demo của đối tác).
-  // Hệ thống thật KHÔNG được có fallback này — id luôn từ phiên đăng nhập.
-  if (!visitorId && process.env.ORG_END_USER_ID) {
-    visitorId = String(process.env.ORG_END_USER_ID).trim();
-  }
+  // KHÔNG có fallback env — id khách luôn phải được gửi tường minh (trang ví dụ
+  // tự đăng nhập theo VITE_ORG_END_USER_ID; hệ thống thật lấy từ phiên của đối tác).
   if (!/^[A-Za-z0-9._:@|-]{1,128}$/.test(visitorId)) {
     return res.status(400).json({
       errorCode: 'VISITOR_ID_INVALID',
