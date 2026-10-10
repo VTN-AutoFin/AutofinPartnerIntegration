@@ -1,10 +1,10 @@
 /**
- * Integrated-app test: login khách DEMO (fallback ORG_END_USER_ID), chat,
+ * Integrated-app test: login khách DEMO (argv[2] bắt buộc — proxy không có fallback env), chat,
  * verify kh-001 materialize trong FAC.
  */
 import { chromium } from 'playwright';
 
-const VISITOR = process.argv[2] || ''; // rỗng → dùng ORG_END_USER_ID ở proxy
+const VISITOR = process.argv[2] || ''; // rỗng → không argv → partner perspective (proxy không có fallback env)
 const browser = await chromium.launch({ headless: true });
 const ctx = await browser.newContext();
 const page = await ctx.newPage();
@@ -15,7 +15,7 @@ page.on('response', (r) => { if (r.status() >= 400) bad.push(`${r.status()} ${r.
 page.on('request', (r) => { if (r.url().includes('message:stream')) chatUrls.push(r.url().slice(0, 130)); });
 
 // 1. /demo/login — argv[2] = visitorId (vd kh-010); rỗng → body {} → proxy
-//    fallback ORG_END_USER_ID (kh-001)
+//    không argv → 400 VISITOR_ID_INVALID (partner perspective)
 const login = await ctx.request.post('http://localhost:5501/demo/login', {
   data: VISITOR ? { visitorId: VISITOR } : {},
 });

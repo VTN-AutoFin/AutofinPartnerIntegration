@@ -8,7 +8,7 @@ import PageScaffold from './PageScaffold';
  * Widget chat AI: tự nói chuyện với FAC backend QUA PROXY (/api/v1/*),
  * không cần partnerCode/productId như AutofinEmbed.
  *
- * Góc nhìn do ORG_END_USER_ID chọn (xem lib/visitorSession.ts):
+ * Góc nhìn do VITE_ORG_END_USER_ID chọn (xem lib/visitorSession.ts):
  *   end-user  → tự đăng nhập khách, chat per-visitor;
  *   partner   → không phiên khách, panel passthrough (FAC tự quản phiên).
  */

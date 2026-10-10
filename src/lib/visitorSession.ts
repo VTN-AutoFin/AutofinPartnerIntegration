@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 /**
- * ORG_END_USER_ID (build time) chọn góc nhìn của trang chat:
+ * VITE_ORG_END_USER_ID (build time) chọn góc nhìn của trang chat:
  *   CÓ giá trị → END-USER perspective: tự đăng nhập id đó qua /demo/login
  *     (nếu chưa có phiên khách) → chat per-visitor trong org.
  *   TRỐNG → PARTNER perspective: không tạo phiên khách — proxy forward nguyên

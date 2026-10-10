@@ -78,7 +78,7 @@ async function callApi(
   }
 }
 
-// ORG_END_USER_ID (build time): CÓ giá trị → trang tự đăng nhập id đó =
+// VITE_ORG_END_USER_ID (build time): CÓ giá trị → trang tự đăng nhập id đó =
 // góc nhìn END-USER (mỗi khách lịch sử chat riêng). TRỐNG → góc nhìn PARTNER
 // (không có phiên khách — proxy forward nguyên vẹn, FAC tự quản phiên
 // staff/partner; widget vẫn mount để xem panel trực tiếp).
