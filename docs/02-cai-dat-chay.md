@@ -18,8 +18,11 @@ cp .env.example .env
 | `PORT` | `5501` | Cổng proxy công khai |
 | `FIN_UPSTREAM` | `http://localhost:3000` | API nguồn (finserver) — chỉ server biết |
 | `WEBAPP_UPSTREAM` | `http://localhost:4200` | Nguồn file SDK |
+| `FAC_WEB_UPSTREAM` | — | FAC frontend — bundle chatpanel `/remote/fac-chat.js` |
+| `FAC_API_UPSTREAM` | — | FAC backend — mọi API `/api/v1/*`, `/financial-agent/api/*` |
 | `ORG_CLIENT_ID` | — | Credential tổ chức, ví dụ `DEMO_svc` |
 | `ORG_CLIENT_SECRET` | — | Secret tổ chức (không xuống browser) |
+| `DEMO_VISITOR_ID` | — | Chỉ demo — tích hợp thật BỎ biến này (id khách do backend đối tác quyết định trong code) |
 | `VITE_API_BASE` | (trống) | Build-time: để trống = cùng origin (khuyến nghị) |
 
 ## 2. Lấy `ORG_CLIENT_ID` / `ORG_CLIENT_SECRET`
