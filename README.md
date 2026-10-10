@@ -25,6 +25,13 @@ Project mẫu giúp đối tác tích hợp **AUTOFIN Widget** vào hệ thống
   header/query/body do browser gửi (browser không thể tự nhận mình là khách
   khác, vì AUTOFIN ký `externalUserId` vào token).
 
+### Hai góc nhìn của trang chat (chọn bằng `ORG_END_USER_ID`)
+
+| `ORG_END_USER_ID` / `VITE_ORG_END_USER_ID` | Góc nhìn | Hành vi |
+|---|---|---|
+| **CÓ giá trị** (vd `kh-001`) | **End-user** | Trang tự đăng nhập id đó (`/demo/login`) → chat per-visitor: mỗi khách lịch sử + workspace riêng trong org |
+| **Trống** | **Partner** | Không tạo phiên khách — proxy forward nguyên vẹn `Authorization`, staff/partner đăng nhập FAC tự quản phiên panel |
+
 ## Kiến trúc
 
 ```

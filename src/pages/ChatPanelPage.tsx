@@ -1,13 +1,19 @@
 import CodeBlock from '../components/CodeBlock';
 import { useFacChat } from '../lib/facChat';
+import { useVisitorPerspective } from '../lib/visitorSession';
 import PageScaffold from './PageScaffold';
 
 /**
  * FAC ChatPanel — SDK riêng (window.FacAgentChat, bundle fac-chat.js).
  * Widget chat AI: tự nói chuyện với FAC backend QUA PROXY (/api/v1/*),
  * không cần partnerCode/productId như AutofinEmbed.
+ *
+ * Góc nhìn do ORG_END_USER_ID chọn (xem lib/visitorSession.ts):
+ *   end-user  → tự đăng nhập khách, chat per-visitor;
+ *   partner   → không phiên khách, panel passthrough (FAC tự quản phiên).
  */
 export default function ChatPanelPage() {
+  const { visitorId, ready } = useVisitorPerspective();
   const { containerRef, status, error } = useFacChat({
     apiBase: '', // cùng origin — proxy forward /api/v1/* sang FAC backend
     locale: 'vi',
@@ -36,6 +42,21 @@ export default function ChatPanelPage() {
     >
       <div className="widget-card">
         <div className="widget-card-title">FacAgentChat — layout embedded</div>
+        <p className="muted" style={{ marginTop: 0 }}>
+          {visitorId ? (
+            <>
+              Góc nhìn <strong>END-USER</strong> — đang là khách:{' '}
+              <code className="api-path">{visitorId}</code> (chat per-visitor)
+            </>
+          ) : ready ? (
+            <>
+              Góc nhìn <strong>PARTNER</strong> — không phiên khách; đăng nhập
+              FAC để panel tự quản phiên
+            </>
+          ) : (
+            <>Đang xác định góc nhìn…</>
+          )}
+        </p>
         <div ref={containerRef} className="widget-host" style={{ height: 600 }} />
         {status === 'loading' ? <div className="widget-status">Đang nạp fac-chat.js…</div> : null}
         {status === 'error' ? <div className="widget-status err">Lỗi: {error}</div> : null}

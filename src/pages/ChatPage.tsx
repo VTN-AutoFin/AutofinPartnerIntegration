@@ -78,12 +78,17 @@ async function callApi(
   }
 }
 
+// ORG_END_USER_ID (build time): CÓ giá trị → trang tự đăng nhập id đó =
+// góc nhìn END-USER (mỗi khách lịch sử chat riêng). TRỐNG → góc nhìn PARTNER
+// (không có phiên khách — proxy forward nguyên vẹn, FAC tự quản phiên
+// staff/partner; widget vẫn mount để xem panel trực tiếp).
+const ENV_END_USER_ID = (
+  import.meta.env.VITE_ORG_END_USER_ID as string | undefined
+)?.trim();
+
 export default function ChatPage() {
   const [visitorId, setVisitorId] = useState<string | null>(null);
-  // Default khách demo — VITE_ORG_END_USER_ID (build time, xem .env.example).
-  const [draftVisitor, setDraftVisitor] = useState(
-    (import.meta.env.VITE_ORG_END_USER_ID as string | undefined) || 'kh-001'
-  );
+  const [draftVisitor, setDraftVisitor] = useState(ENV_END_USER_ID || 'kh-001');
   const [sessionId, setSessionId] = useState('');
   const [message, setMessage] = useState('VNINDEX hôm nay thế nào?');
   const [calls, setCalls] = useState<Call[]>([]);
@@ -101,9 +106,28 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
+    // Có phiên khách sẵn (cookie) → dùng tiếp. Chưa có mà env cấu hình id
+    // end-user → tự đăng nhập (end-user perspective). Không → partner
+    // perspective: không tạo phiên, panel chạy passthrough.
     fetch('/demo/me')
       .then((r) => r.json())
-      .then((d) => setVisitorId(d.visitorId ?? null))
+      .then((d) => {
+        if (d.visitorId) {
+          setVisitorId(d.visitorId);
+          return;
+        }
+        if (ENV_END_USER_ID) {
+          return fetch('/demo/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ visitorId: ENV_END_USER_ID }),
+          })
+            .then((r) => r.json())
+            .then((data) => setVisitorId((data as { visitorId?: string }).visitorId ?? null))
+            .catch(() => setVisitorId(null));
+        }
+        setVisitorId(null);
+      })
       .catch(() => setVisitorId(null));
   }, []);
 
@@ -173,7 +197,18 @@ export default function ChatPage() {
         </p>
       </div>
 
-      {visitorId ? <FacChatHost /> : null}
+      {visitorId ? (
+        <FacChatHost />
+      ) : (
+        <>
+          <p className="muted">
+            Góc nhìn PARTNER — không có phiên khách. Proxy forward nguyên vẹn
+            <code className="api-path">Authorization</code>; đăng nhập FAC
+            (staff/partner) để panel tự quản phiên.
+          </p>
+          <FacChatHost />
+        </>
+      )}
 
       <div className="widget-card">
         <div className="widget-card-title">Danh tính gửi xuống chat service</div>
