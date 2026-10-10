@@ -2,7 +2,7 @@
 
 > **Đây là project VÍ DỤ (example)** — mục đích: đối tác đọc code + docs rồi tự
 > tích hợp vào hệ thống của mình. Các chi tiết chỉ có ở demo (trang ví dụ,
-> `/demo/login`, biến `DEMO_VISITOR_ID`) **không mang sang production**.
+> `/demo/login`, biến `ORG_END_USER_ID`) **không mang sang production**.
 
 Project mẫu giúp đối tác tích hợp **AUTOFIN Widget** vào hệ thống của mình:
 
@@ -16,7 +16,7 @@ Project mẫu giúp đối tác tích hợp **AUTOFIN Widget** vào hệ thống
 
 ## Id khách (end user) — nguyên tắc quan trọng nhất
 
-- **Không đặt id khách trong `.env` khi tích hợp thật.** `DEMO_VISITOR_ID` chỉ
+- **Không đặt id khách trong `.env` khi tích hợp thật.** `ORG_END_USER_ID` chỉ
   là tiện ích demo của project này.
 - **Backend đối tác quyết định id khách trong code**: lấy id từ phiên đăng nhập
   thật của hệ họ (user id trong session/JWT nội bộ) rồi server-side mới gọi

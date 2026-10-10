@@ -80,9 +80,9 @@ async function callApi(
 
 export default function ChatPage() {
   const [visitorId, setVisitorId] = useState<string | null>(null);
-  // Default khách demo — VITE_DEMO_VISITOR_ID (build time, xem .env.example).
+  // Default khách demo — VITE_ORG_END_USER_ID (build time, xem .env.example).
   const [draftVisitor, setDraftVisitor] = useState(
-    (import.meta.env.VITE_DEMO_VISITOR_ID as string | undefined) || 'kh-001'
+    (import.meta.env.VITE_ORG_END_USER_ID as string | undefined) || 'kh-001'
   );
   const [sessionId, setSessionId] = useState('');
   const [message, setMessage] = useState('VNINDEX hôm nay thế nào?');

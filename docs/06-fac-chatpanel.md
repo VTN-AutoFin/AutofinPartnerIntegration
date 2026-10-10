@@ -35,7 +35,7 @@ tự chọn được):
 | **Không** | Forward `Authorization` nguyên vẹn — staff/partner dùng panel trực tiếp, FAC tự quản phiên. |
 
 > **Đây là project VÍ DỤ.** Trong project này id khách chỉ để demo
-> (`/demo/login`, fallback `DEMO_VISITOR_ID` trong `.env`). Tích hợp thật:
+> (`/demo/login`, fallback `ORG_END_USER_ID` trong `.env`). Tích hợp thật:
 > **không đặt id khách trong env** — backend đối tác quyết định id khách
 > **trong code** (từ phiên đăng nhập thật của hệ họ) rồi mới đặt cookie phiên /
 > gọi `/api/org/token`. Id khách luôn từ phiên SERVER, không bao giờ từ

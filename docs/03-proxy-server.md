@@ -55,7 +55,7 @@ Phiên khách **demo** — thay cho hệ thống đăng nhập thật của đ�
 - `/demo/login` nhận `{visitorId}` (tuỳ chọn) và đặt cookie **ký** 
   `demo_visitor` phía server; browser không tự chọn được mình là khách nào ở
   tầng API.
-- Fallback `DEMO_VISITOR_ID` trong `.env` **chỉ để demo**.
+- Fallback `ORG_END_USER_ID` trong `.env` **chỉ để demo**.
 
 > **Project VÍ DỤ — production KHÔNG dùng `/demo/login` và KHÔNG đặt id khách
 > trong env.** Backend đối tác tự quyết định id khách **trong code**: lấy id từ

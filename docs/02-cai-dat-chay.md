@@ -22,7 +22,7 @@ cp .env.example .env
 | `FAC_API_UPSTREAM` | — | FAC backend — mọi API `/api/v1/*`, `/financial-agent/api/*` |
 | `ORG_CLIENT_ID` | — | Credential tổ chức, ví dụ `DEMO_svc` |
 | `ORG_CLIENT_SECRET` | — | Secret tổ chức (không xuống browser) |
-| `DEMO_VISITOR_ID` | — | Chỉ demo — tích hợp thật BỎ biến này (id khách do backend đối tác quyết định trong code) |
+| `ORG_END_USER_ID` | — | Chỉ demo — tích hợp thật BỎ biến này (id khách do backend đối tác quyết định trong code) |
 | `VITE_API_BASE` | (trống) | Build-time: để trống = cùng origin (khuyến nghị) |
 
 ## 2. Lấy `ORG_CLIENT_ID` / `ORG_CLIENT_SECRET`
