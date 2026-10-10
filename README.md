@@ -46,11 +46,8 @@ Proxy server :5501 ── /embedded/autofin-embed.js ──► WebApp (file SDK,
 cp .env.example .env
 # điền ORG_CLIENT_ID / ORG_CLIENT_SECRET (xem docs/02-cai-dat-chay.md)
 #
-# Hai mẫu env:
-#   .env.example          — ORG mode: token PER-VISITOR, mỗi khách 1 lịch sử
-#                           chat (đúng cách cho widget chat AI)
-#   .env.example.enduser  — END-USER mode: 1 tài khoản user partner chung
-#                           (API thị trường OK, KHÔNG tách chat theo khách)
+# Một cách duy nhất: ORG machine token — API thị trường (org token) +
+# chat per-visitor (end-user token từ org token) + FAC (exchange từ end-user).
 
 # 2) Cài đặt + chạy dev (proxy :5501 + web :5174)
 npm install

@@ -32,13 +32,9 @@ import {
   refreshEndUserToken,
   getFacToken,
   refreshFacToken,
-  getPartnerToken,
-  refreshPartnerToken,
-  isPartnerAuthConfigured,
   tokenStatus,
   endUserTokenStatus,
   facTokenStatus,
-  partnerTokenStatus,
 } from './token-manager.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -364,21 +360,11 @@ app.all('/api/*', async (req, res) => {
       getToken = () => getEndUserToken(visitorId);
       refreshToken = () => refreshEndUserToken(visitorId);
     } else {
-      // Ưu tiên PARTNER user token; sign-in hỏng (VD tài khoản bị khóa tạm,
-      // mật khẩu đổi) thì fallback sang org machine token — các route
-      // /api/gw thường vẫn chạy đúng danh tính tổ chức thay vì ẩn danh 401.
-      const partnerThenOrg = async (partnerFn, orgFn) => {
-        if (isPartnerAuthConfigured()) {
-          try {
-            return await partnerFn();
-          } catch (e) {
-            console.warn(`[proxy] partner token loi — fallback org token: ${e.message}`);
-          }
-        }
-        return orgFn();
-      };
-      getToken = () => partnerThenOrg(getPartnerToken, getAccessToken);
-      refreshToken = () => partnerThenOrg(refreshPartnerToken, refreshAccessToken);
+      // Route thường: org machine token (ORG_CLIENT_ID/SECRET) — danh tính
+      // tổ chức duy nhất cho các API thị trường. Không có token → forward
+      // ẩn danh (route public).
+      getToken = getAccessToken;
+      refreshToken = refreshAccessToken;
     }
     try {
       upstream = await forward(await getToken());
@@ -494,8 +480,6 @@ app.get('/healthz', (req, res) => {
     token: tokenStatus(),
     endUserTokens: endUserTokenStatus(),
     facTokens: facTokenStatus(),
-    partnerAuth: isPartnerAuthConfigured(),
-    partnerToken: partnerTokenStatus(),
     upstreams: {
       finserver: FIN_UPSTREAM,
       webapp: WEBAPP_UPSTREAM,

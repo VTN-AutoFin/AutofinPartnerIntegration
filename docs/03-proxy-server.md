@@ -20,7 +20,8 @@ dễ đọc và tự sở hữu.
 2. Chọn token theo route (từ `token-manager`), ghi đè bất kỳ gì client gửi:
    - **Route chat** (`/api/gw/v1/chat/*`) + có cookie khách → **end-user token
      per-visitor** (`POST /api/org/token {externalUserId}`).
-   - Còn lại → **machine token tổ chức**.
+   - Còn lại → **machine token tổ chức** (`ORG_CLIENT_ID/SECRET` — danh tính
+     duy nhất cho API thị trường; partner user login `PARTNER_*` đã bỏ).
 3. `fetch(`${FIN_UPSTREAM}${req.originalUrl}`)` giữ nguyên method/path/query/body.
 4. Nếu upstream trả **401** → refresh token và retry **đúng 1 lần**.
 5. Response: strip `server`, `via`, `x-powered-by`, `content-encoding`…;
@@ -71,7 +72,6 @@ Phiên khách **demo** — thay cho hệ thống đăng nhập thật của đ�
   "token": { "cached": true, "expiresInSeconds": 3120 },
   "endUserTokens": { "cached": 1, "inflight": 0 },
   "facTokens": { "cached": 1, "inflight": 0 },
-  "partnerAuth": false,
   "upstreams": { "finserver": "...", "webapp": "...", "facWeb": "...", "facApi": "..." }
 }
 ```

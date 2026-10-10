@@ -218,94 +218,12 @@ export async function refreshFacToken(externalUserId) {
 }
 
 // ---------------------------------------------------------------------------
-// Partner auto-login (user token) — server-side duy nhất.
-//
-// POST {AUTH_API_BASE|FIN_UPSTREAM}/auth/partner-sign-in
-//   { partnerCode, username?, password }
-//   → { userId, accessToken, refreshToken, expiresIn }
-//
-// Partner chỉ đặt code/username/password trong .env; token KHÔNG bao giờ
-// xuống browser — proxy gắn Bearer vào mọi /api/gw/* trước khi forward.
+// Org machine token (ORG_CLIENT_ID/SECRET) là DANH TÍNH DUY NHẤT cho các route
+// /api/gw thường. Partner user login (PARTNER_*) đã BỎ — mọi danh tính:
+//   - API thị trường  : org machine token
+//   - Chat theo khách : token end-user per-visitor (từ org token)
+//   - FAC chat        : JWT FAC per-visitor (exchange từ end-user token)
 // ---------------------------------------------------------------------------
-
-let partnerCached = null; // { token, expiresAtMs }
-let partnerInflight = null;
-
-function partnerConfig() {
-  const partnerCode = process.env.PARTNER_CODE || '';
-  const username = process.env.PARTNER_CLIENT_ID || '';
-  const password = process.env.PARTNER_CLIENT_SECRET || '';
-  // AUTH_API_BASE: base URL dịch vụ auth (đã kèm prefix, vd
-  // https://api.autofin.vn/gateway/api). Trống = dùng FIN_UPSTREAM.
-  const finUpstream = (
-    process.env.AUTH_API_BASE ||
-    process.env.FIN_UPSTREAM ||
-    'http://localhost:3000/api'
-  ).replace(/\/+$/, '');
-  if (!partnerCode || !password || !username) return null;
-  return { partnerCode, username, password, finUpstream };
-}
-
-/** true nếu .env có credential partner (login sẽ chạy tự động). */
-export function isPartnerAuthConfigured() {
-  return partnerConfig() !== null;
-}
-
-async function fetchPartnerToken() {
-  const cfg = partnerConfig();
-  if (!cfg) throw new Error('Thiếu PARTNER_CODE / PARTNER_CLIENT_ID / PARTNER_CLIENT_SECRET — xem .env.example');
-
-  let res;
-  try {
-    res = await fetch(`${cfg.finUpstream}/auth/partner-sign-in`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({
-        partnerCode: cfg.partnerCode,
-        username: cfg.username,
-        password: cfg.password,
-      }),
-    });
-  } catch (e) {
-    throw new Error(`Không gọi được finserver (${cfg.finUpstream}): ${e.message}`);
-  }
-
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(
-      `Partner sign-in thất bại: HTTP ${res.status}${json?.error ? ` — ${json.error}` : ''}${json?.message ? ` — ${json.message}` : ''}`
-    );
-  }
-
-  const accessToken = json?.accessToken;
-  const expiresIn = Number(json?.expiresIn) || 3600;
-  if (!accessToken) throw new Error('Response partner-sign-in thiếu accessToken');
-
-  partnerCached = {
-    token: accessToken,
-    expiresAtMs: Date.now() + Math.max(expiresIn - SKEW_SECONDS, 30) * 1000,
-  };
-  return partnerCached.token;
-}
-
-/** Partner user token (cache đến expiresIn - skew) hoặc login mới. */
-export async function getPartnerToken() {
-  if (!partnerConfig()) throw new Error('Partner auth chưa cấu hình trong .env');
-  if (partnerCached && Date.now() < partnerCached.expiresAtMs) return partnerCached.token;
-  if (!partnerInflight) {
-    partnerInflight = fetchPartnerToken().finally(() => {
-      partnerInflight = null;
-    });
-  }
-  return partnerInflight;
-}
-
-/** Gọi khi upstream trả 401: bỏ cache, login lại. */
-export async function refreshPartnerToken() {
-  partnerCached = null;
-  return getPartnerToken();
-}
-
 /** Cho /healthz — không tự fetch. */
 export function tokenStatus() {
   if (!cached) return { cached: false };
@@ -323,13 +241,4 @@ export function endUserTokenStatus() {
 /** Cho /healthz — số khách đang giữ JWT FAC. */
 export function facTokenStatus() {
   return { cached: facCache.size, inflight: facInflight.size };
-}
-
-/** Cho /healthz — trạng thái partner token. */
-export function partnerTokenStatus() {
-  if (!partnerCached) return { cached: false };
-  return {
-    cached: true,
-    expiresInSeconds: Math.max(0, Math.round((partnerCached.expiresAtMs - Date.now()) / 1000)),
-  };
 }
