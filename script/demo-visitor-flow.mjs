@@ -14,8 +14,11 @@ const chatUrls = [];
 page.on('response', (r) => { if (r.status() >= 400) bad.push(`${r.status()} ${r.url().slice(0, 130)}`); });
 page.on('request', (r) => { if (r.url().includes('message:stream')) chatUrls.push(r.url().slice(0, 130)); });
 
-// 1. /demo/login với body RỖNG → proxy fallback DEMO_VISITOR_ID (kh-001)
-const login = await ctx.request.post('http://localhost:5501/demo/login', { data: {} });
+// 1. /demo/login — argv[2] = visitorId (vd kh-010); rỗng → body {} → proxy
+//    fallback DEMO_VISITOR_ID (kh-001)
+const login = await ctx.request.post('http://localhost:5501/demo/login', {
+  data: VISITOR ? { visitorId: VISITOR } : {},
+});
 const lj = await login.json();
 console.log('login (empty body):', login.status(), JSON.stringify(lj));
 const visitorId = lj.visitorId;

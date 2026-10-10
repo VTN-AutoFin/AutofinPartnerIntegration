@@ -364,8 +364,21 @@ app.all('/api/*', async (req, res) => {
       getToken = () => getEndUserToken(visitorId);
       refreshToken = () => refreshEndUserToken(visitorId);
     } else {
-      getToken = isPartnerAuthConfigured() ? getPartnerToken : getAccessToken;
-      refreshToken = isPartnerAuthConfigured() ? refreshPartnerToken : refreshAccessToken;
+      // Ưu tiên PARTNER user token; sign-in hỏng (VD tài khoản bị khóa tạm,
+      // mật khẩu đổi) thì fallback sang org machine token — các route
+      // /api/gw thường vẫn chạy đúng danh tính tổ chức thay vì ẩn danh 401.
+      const partnerThenOrg = async (partnerFn, orgFn) => {
+        if (isPartnerAuthConfigured()) {
+          try {
+            return await partnerFn();
+          } catch (e) {
+            console.warn(`[proxy] partner token loi — fallback org token: ${e.message}`);
+          }
+        }
+        return orgFn();
+      };
+      getToken = () => partnerThenOrg(getPartnerToken, getAccessToken);
+      refreshToken = () => partnerThenOrg(refreshPartnerToken, refreshAccessToken);
     }
     try {
       upstream = await forward(await getToken());
