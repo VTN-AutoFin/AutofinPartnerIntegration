@@ -3,6 +3,22 @@
 Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/); project này
 không phát hành npm nên dùng version tài liệu (doc vX.Y).
 
+## [Doc v0.3] — 2026-10-23
+
+### Added
+- **Widget chi tiết doanh nghiệp** (`/company`): `comp-stock-detail` (720px),
+  `comp-financials`, `comp-shareholders`, `comp-profile`, `comp-news` — tất cả
+  nhận mount option `symbol` (mã CK), demo `handle.setProps({ symbol })` đổi
+  mã lúc chạy. Cần SDK bundle WebApp ≥ commit `8f94c0dc` (nhóm surface inline
+  mới; `comp-fa-metrics` đã bị xoá thay bằng 4 widget riêng).
+- **Widget chỉ số & ngành** (`/market`): `overlay-index-detail` /
+  `overlay-industry-detail` mount được inline (trước đây chỉ mở overlay),
+  `symbol` = id chỉ số/ngành (`VNINDEX` / `INDUST_ALL`), cao đề xuất 900px.
+- `docs/07-widget-chi-tiet.md` + bảng `productId`/option `symbol` trong
+  `docs/04-tich-hop-widget.md` (kèm ví dụ `data-symbol` cho autoMount).
+- `src/lib/snippet.ts`: snippet tự lấy chiều cao theo product
+  (720/900/450) và phát dòng `symbol` khi có.
+
 ## [Doc v0.2] — 2026-09-25
 
 ### Added

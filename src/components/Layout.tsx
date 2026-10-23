@@ -7,6 +7,8 @@ const NAV = [
   { to: '/signals', label: 'Tín hiệu' },
   { to: '/board', label: 'Bảng điện' },
   { to: '/news', label: 'Tin tức' },
+  { to: '/company', label: 'Chi tiết doanh nghiệp' },
+  { to: '/market', label: 'Chỉ số & ngành' },
   { to: '/stock-filter', label: 'Bộ lọc cổ phiếu' },
   { to: '/callbacks', label: 'Callbacks (đặt lệnh)' },
   { to: '/chatpanel', label: 'FAC Chat (AI)' },

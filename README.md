@@ -83,6 +83,7 @@ origin proxy, không có request nào tới API nguồn.
 4. [Tích hợp widget](docs/04-tich-hop-widget.md) — script tag, mount option, từng loại widget.
 5. [Callbacks](docs/05-callbacks.md) — `onPartnerAction`, mở form đặt lệnh từ event.
 6. [Chat AI (FAC ChatPanel)](docs/06-fac-chatpanel.md) — SDK riêng `FacAgentChat`, API `/api/v1/*` qua proxy; khách (phiên `demo_visitor`) tự gắn JWT FAC per-visitor (T5), staff forward Authorization nguyên vẹn.
+7. [Widget chi tiết doanh nghiệp & chỉ số](docs/07-widget-chi-tiet.md) — nhóm `comp-*` theo mã (`symbol`), chỉ số/ngành inline 900px, `setProps` đổi mã lúc chạy.
 
 Lịch sử thay đổi: [CHANGELOG.md](CHANGELOG.md) — nhánh này: per-visitor token + FAC exchange (T5 partner visitor) + FAC ChatPanel mount.
 

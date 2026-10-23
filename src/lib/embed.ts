@@ -16,6 +16,10 @@ export type EmbedProductId =
   | 'stock-filter'
   | 'comp-signals'
   | 'comp-reports'
+  | 'comp-stock-detail'
+  | 'comp-shareholders'
+  | 'comp-profile'
+  | 'comp-news'
   | 'overlay-stock-detail'
   | 'overlay-index-detail'
   | 'overlay-industry-detail'
@@ -47,6 +51,11 @@ export type AutofinEmbedMountOptions = {
   locale?: EmbedLocale;
   partnerCode: string;
   dataProviderId?: string;
+  /** Mã chứng khoán cho widget theo mã (comp-stock-detail, comp-financials,
+   *  comp-shareholders, comp-profile, comp-news, overlay-stock-detail).
+   *  overlay-index-detail / overlay-industry-detail: id chỉ số/ngành
+   *  (VNINDEX / INDUST_ALL). Đổi lúc chạy: handle.setProps({ symbol: 'VCB' }). */
+  symbol?: string;
   /** Domain proxy công khai của đối tác. Trống = cùng origin (site này). */
   apiBase?: string;
   theme?: EmbedTheme;

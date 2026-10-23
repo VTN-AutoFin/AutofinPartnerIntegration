@@ -28,6 +28,16 @@ const WIDGETS: Array<{ to: string; label: string; desc: string }> = [
   { to: '/signals', label: 'comp-signals · menu-signals', desc: 'Khối và menu tín hiệu giao dịch' },
   { to: '/board', label: 'menu-board', desc: 'Bảng điện thị trường' },
   { to: '/news', label: 'menu-news', desc: 'Tin tức thị trường (autoMount)' },
+  {
+    to: '/company',
+    label: 'comp-stock-detail · comp-shareholders · comp-profile · comp-news · comp-financials',
+    desc: 'Nhóm widget chi tiết doanh nghiệp — truyền symbol (FPT/VCB…), đổi lúc chạy bằng setProps',
+  },
+  {
+    to: '/market',
+    label: 'overlay-index-detail · overlay-industry-detail',
+    desc: 'Chỉ số thị trường & ngành — nhúng inline, symbol = id chỉ số/ngành (VNINDEX/INDUST_ALL)',
+  },
   { to: '/stock-filter', label: 'stock-filter', desc: 'Bộ lọc cổ phiếu (tắt overlay nội bộ)' },
   { to: '/callbacks', label: 'onPartnerAction', desc: 'Bắt sự kiện → mở form đặt lệnh mẫu' },
   { to: '/chatpanel', label: 'FAC ChatPanel', desc: 'Chat AI — SDK riêng FacAgentChat, API /api/v1/* qua proxy' },

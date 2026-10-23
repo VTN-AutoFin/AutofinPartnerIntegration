@@ -5,6 +5,8 @@ import DerivativesPage from './pages/DerivativesPage';
 import SignalsPage from './pages/SignalsPage';
 import BoardPage from './pages/BoardPage';
 import NewsPage from './pages/NewsPage';
+import CompanyPage from './pages/CompanyPage';
+import MarketPage from './pages/MarketPage';
 import StockFilterPage from './pages/StockFilterPage';
 import CallbacksPage from './pages/CallbacksPage';
 import ChatPanelPage from './pages/ChatPanelPage';
@@ -19,6 +21,8 @@ export default function App() {
           <Route path="/signals" element={<SignalsPage />} />
           <Route path="/board" element={<BoardPage />} />
           <Route path="/news" element={<NewsPage />} />
+          <Route path="/company" element={<CompanyPage />} />
+          <Route path="/market" element={<MarketPage />} />
           <Route path="/stock-filter" element={<StockFilterPage />} />
           <Route path="/callbacks" element={<CallbacksPage />} />
           <Route path="/chatpanel" element={<ChatPanelPage />} />

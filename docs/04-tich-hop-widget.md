@@ -66,6 +66,17 @@ Snippet tương tự cho từng sản phẩm — xem thư mục `src/pages/` c�
   style="height:480px"
 ></div>
 
+<!-- widget theo mã: thêm data-symbol -->
+<div
+  data-autofin-product="comp-stock-detail"
+  data-symbol="FPT"
+  data-locale="vi"
+  data-partner-code="DEMO"
+  data-provider="AUTOFIN"
+  data-api-base="https://api.tenmien-doitac.vn"
+  style="height:720px"
+></div>
+
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     window.AutofinEmbed && window.AutofinEmbed.autoMount(); // quét mọi [data-autofin-product]
@@ -75,18 +86,27 @@ Snippet tương tự cho từng sản phẩm — xem thư mục `src/pages/` c�
 
 ## Danh sách `productId`
 
-| productId | Mô tả |
-|---|---|
-| `menu-derivatives` | Menu bảng giá phái sinh (full menu) |
-| `menu-signals` | Menu tín hiệu giao dịch |
-| `menu-reports` | Menu báo cáo |
-| `menu-news` | Tin tức thị trường |
-| `menu-board` | Bảng điện thị trường |
-| `stock-filter` | Bộ lọc cổ phiếu |
-| `comp-signals` | Khối tín hiệu gọn |
-| `comp-reports` | Khối báo cáo gọn |
-| `overlay-stock-detail` / `overlay-index-detail` / `overlay-industry-detail` | Overlay chi tiết (stock/index/ngành) |
-| `chatpanel` | Panel chat |
+| productId | Mô tả | `symbol` | Cao mặc định |
+|---|---|---|---|
+| `menu-derivatives` | Menu bảng giá phái sinh (full menu) | — | 450px |
+| `menu-signals` | Menu tín hiệu giao dịch | — | 450px |
+| `menu-reports` | Menu báo cáo | — | 450px |
+| `menu-news` | Tin tức thị trường | — | 450px |
+| `menu-board` | Bảng điện thị trường | — | 450px |
+| `stock-filter` | Bộ lọc cổ phiếu | — | 450px |
+| `comp-signals` | Khối tín hiệu gọn | — | 450px |
+| `comp-reports` | Khối báo cáo gọn | — | 450px |
+| `comp-stock-detail` | Chi tiết cổ phiếu (khối tab đầy đủ: giá / tài chính / công ty…) | ✓ mã CK (`FPT`, `VCB`…) | 720px |
+| `comp-financials` | Báo cáo tài chính | ✓ mã CK | 450px |
+| `comp-shareholders` | Cổ đông | ✓ mã CK | 450px |
+| `comp-profile` | Hồ sơ doanh nghiệp | ✓ mã CK | 450px |
+| `comp-news` | Tin tức doanh nghiệp | ✓ mã CK | 450px |
+| `overlay-stock-detail` | Overlay chi tiết cổ phiếu (chỉ mở popup, không mount inline) | ✓ mã CK | — |
+| `overlay-index-detail` | Chi tiết chỉ số thị trường (inline) | ✓ id chỉ số (`VNINDEX`…) | 900px |
+| `overlay-industry-detail` | Chi tiết ngành (inline) | ✓ id ngành (`INDUST_ALL`…) | 900px |
+| `chatpanel` | Panel chat | — | 450px |
+
+Chi tiết nhóm widget theo mã / chỉ số: xem [07-widget-chi-tiet.md](07-widget-chi-tiet.md).
 
 ## Các option của `mount()`
 
@@ -98,6 +118,7 @@ Snippet tương tự cho từng sản phẩm — xem thư mục `src/pages/` c�
 | `apiBase` | ✓ (prod) | Domain proxy. Bỏ trống = mặc định theo origin của script |
 | `locale` | | `'vi'` (mặc định) hoặc `'en'` |
 | `theme` | | `'light'` \| `'dark'` |
+| `symbol` | | Mã chứng khoán / id chỉ số — cho widget theo mã (`comp-stock-detail`, `comp-financials`, `comp-shareholders`, `comp-profile`, `comp-news`) và chỉ số/ngành (`overlay-index-detail`, `overlay-industry-detail`) |
 | `dataProviderId` | | Mặc định `AUTOFIN` |
 | `onPartnerAction` | | Callback sự kiện — xem [05-callbacks.md](05-callbacks.md) |
 | `features.internalOverlays` | | `false` = widget không tự mở popup chi tiết, mọi sự kiện đi qua callback |
