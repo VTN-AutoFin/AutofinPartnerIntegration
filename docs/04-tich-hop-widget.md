@@ -103,7 +103,7 @@ Snippet tương tự cho từng sản phẩm — xem thư mục `src/pages/` c�
 | `comp-news` | Tin tức doanh nghiệp | ✓ mã CK | 450px |
 | `overlay-stock-detail` | Overlay chi tiết cổ phiếu (chỉ mở popup, không mount inline) | ✓ mã CK | — |
 | `overlay-index-detail` | Chi tiết chỉ số thị trường (inline) | ✓ id chỉ số (`VNINDEX`…) | 900px |
-| `overlay-industry-detail` | Chi tiết ngành (inline) | ✓ id ngành (`INDUST_ALL`…) | 900px |
+| `overlay-industry-detail` | Chi tiết ngành (inline) | ✓ id ngành (`INDUST_<n>`, vd `INDUST_6` = Tài chính) | 900px |
 | `chatpanel` | Panel chat | — | 450px |
 
 Chi tiết nhóm widget theo mã / chỉ số: xem [07-widget-chi-tiet.md](07-widget-chi-tiet.md).

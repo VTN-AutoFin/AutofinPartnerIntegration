@@ -39,8 +39,14 @@ Trước đây chỉ mở dưới overlay fullscreen; giờ mount inline như wi
 
 | productId | `symbol` | Mặc định khi bỏ trống |
 |---|---|---|
-| `overlay-index-detail` | id chỉ số: `VNINDEX`, `HNXINDEX`… | `VNINDEX` |
-| `overlay-industry-detail` | id ngành: `INDUST_ALL`… | `INDUST_ALL` |
+| `overlay-index-detail` | id chỉ số: `VNINDEX`, `VN30`… | `VNINDEX` |
+| `overlay-industry-detail` | id ngành `INDUST_<n>`: `INDUST_6` = Tài chính, `INDUST_1` = Năng lượng, `INDUST_10` = Bất động sản… | `INDUST_ALL` |
+
+⚠️ **`INDUST_ALL` không vẽ được biểu đồ** — đó là tên *exchange* nhóm toàn bộ
+ngành trong TV symbol search, không phải symbol. Widget vẫn render (metric
+trên cùng) nhưng chart + bảng top cổ phiếu "Không có dữ liệu". Lấy danh sách
+id ngành thật từ `/api/gw/v1/market/symbols?type=4` (mọi row có
+`exchange: "INDUST_ALL"`, `symbol: "INDUST_<n>"`).
 
 Cao đề xuất **900px** — bên trong có biểu đồ TradingView 600px + bảng top cổ
 phiếu. Widget có giá live qua MQTT của AUTOFIN, không cần site đối tác làm gì.
@@ -68,7 +74,7 @@ inline tương ứng.
 ## Trang ví dụ
 
 - `/company` — cả 5 widget theo mã, symbol `FPT`.
-- `/market` — chỉ số + ngành, symbol `VNINDEX` / `INDUST_ALL`.
+- `/market` — chỉ số + ngành, symbol `VNINDEX` / `INDUST_6` (Tài chính).
 
 ⚠️ Widget nhóm này cần SDK bundle mới (`autofin-embed.js` từ WebApp ≥ commit
 `8f94c0dc`). Proxy cache SDK 5 phút — sau khi nâng cấp WebApp, đợi hết cache
