@@ -1,8 +1,6 @@
 import ActionLog from '../components/ActionLog';
-import CodeBlock from '../components/CodeBlock';
 import ProxyApiDemo from '../components/ProxyApiDemo';
 import WidgetHost from '../components/WidgetHost';
-import { mountSnippet } from '../lib/snippet';
 import PageScaffold from './PageScaffold';
 import { PARTNER_CODE } from '../lib/embed';
 
@@ -18,7 +16,6 @@ export default function DerivativesPage() {
         path="/api/gw/v1/derivative/days-info"
         description="Cùng API widget dùng — nhưng browser chỉ gọi proxy (xem Network tab: không có request nào tới API nguồn)."
       />
-      <CodeBlock code={mountSnippet('menu-derivatives')} />
     </PageScaffold>
   );
 }

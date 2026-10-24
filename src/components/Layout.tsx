@@ -39,10 +39,14 @@ export default function Layout() {
           ))}
         </nav>
         <div className="sidebar-foot">
-          <div>
-            apiBase: <code>{API_BASE || <>(cùng origin)</>}</code>
+          <div className="foot-row">
+            <span>apiBase</span>
+            <code>{API_BASE || '(cùng origin)'}</code>
           </div>
-          <div className="muted">SDK: /embedded/autofin-embed.js</div>
+          <div className="foot-row">
+            <span>SDK</span>
+            <code>/embedded/autofin-embed.js</code>
+          </div>
         </div>
       </aside>
       <main className="content">

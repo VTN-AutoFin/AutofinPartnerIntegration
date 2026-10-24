@@ -1,7 +1,5 @@
 import ActionLog from '../components/ActionLog';
-import CodeBlock from '../components/CodeBlock';
 import WidgetHost from '../components/WidgetHost';
-import { mountSnippet } from '../lib/snippet';
 import PageScaffold from './PageScaffold';
 import { PARTNER_CODE } from '../lib/embed';
 
@@ -36,19 +34,15 @@ export default function MarketPage() {
         partnerCode={PARTNER_CODE}
         symbol="VNINDEX"
         height={900}
-        title="overlay-index-detail — Chi tiết chỉ số thị trường (VNINDEX)"
       />
       <WidgetHost
         productId="overlay-industry-detail"
         partnerCode={PARTNER_CODE}
         symbol="INDUST_6"
         height={900}
-        title="overlay-industry-detail — Chi tiết ngành (INDUST_6 · Ngành Tài chính)"
+        name="Chi tiết ngành · Tài chính"
       />
       <ActionLog />
-      <CodeBlock
-        code={mountSnippet('overlay-industry-detail', '', { symbol: 'INDUST_6' })}
-      />
     </PageScaffold>
   );
 }

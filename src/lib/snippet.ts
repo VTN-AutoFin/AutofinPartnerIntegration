@@ -16,13 +16,22 @@ export function mountHeight(productId: string): number {
   return DEFAULT_HEIGHT[productId] ?? 450;
 }
 
+/** Dòng `features: { … }` để chèn vào snippet qua tham số `extra`. */
+export function featuresLine(features?: Record<string, unknown>): string {
+  if (!features || !Object.keys(features).length) return '';
+  const body = Object.entries(features)
+    .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
+    .join(', ');
+  return `\n      features: { ${body} },`;
+}
+
 export function mountSnippet(
   productId: string,
   extra = '',
-  opts: { symbol?: string } = {}
+  opts: { symbol?: string; height?: number } = {}
 ): string {
   const apiBase = API_BASE || 'https://api.tenmien-doitac.vn';
-  const height = mountHeight(productId);
+  const height = opts.height ?? mountHeight(productId);
   const symbolLine = opts.symbol
     ? `\n      symbol: '${opts.symbol}', // đổi lúc chạy: handle.setProps({ symbol: 'VCB' })`
     : '';

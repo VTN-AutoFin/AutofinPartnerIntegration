@@ -15,9 +15,9 @@ export default function CodeBlock({ code, lang = 'html' }: { code: string; lang?
   };
 
   return (
-    <div className="widget-card">
-      <div className="widget-card-title code-title">
-        <span>Mã nhúng ({lang})</span>
+    <div className="code-wrap">
+      <div className="code-title">
+        <span className="code-lang">{lang}</span>
         <button className="btn" onClick={copy}>
           {copied ? 'Đã copy ✓' : 'Copy'}
         </button>

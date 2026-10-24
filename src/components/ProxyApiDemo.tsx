@@ -43,7 +43,7 @@ export default function ProxyApiDemo({
       {description ? <p className="muted">{description}</p> : null}
       <div className="api-row">
         <code className="api-path">GET {path}</code>
-        <button className="btn" onClick={call} disabled={loading}>
+        <button className="btn btn-primary" onClick={call} disabled={loading}>
           {loading ? 'Đang gọi…' : 'Gọi thử'}
         </button>
       </div>

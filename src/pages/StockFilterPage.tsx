@@ -1,8 +1,6 @@
 import ActionLog from '../components/ActionLog';
-import CodeBlock from '../components/CodeBlock';
 import ProxyApiDemo from '../components/ProxyApiDemo';
 import WidgetHost from '../components/WidgetHost';
-import { mountSnippet } from '../lib/snippet';
 import PageScaffold from './PageScaffold';
 import { PARTNER_CODE } from '../lib/embed';
 
@@ -26,12 +24,6 @@ export default function StockFilterPage() {
       />
       <ActionLog />
       <ProxyApiDemo path="/api/gw/v1/search" description="Endpoint tìm kiếm mã — widget gọi cùng đường dẫn này qua proxy." />
-      <CodeBlock
-        code={mountSnippet(
-          'stock-filter',
-          `\n      features: { internalOverlays: false },`
-        )}
-      />
     </PageScaffold>
   );
 }
