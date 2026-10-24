@@ -17,6 +17,7 @@ export type EmbedProductId =
   | 'comp-signals'
   | 'comp-reports'
   | 'comp-stock-detail'
+  | 'comp-financials'
   | 'comp-shareholders'
   | 'comp-profile'
   | 'comp-news'
@@ -25,6 +26,27 @@ export type EmbedProductId =
   | 'overlay-industry-detail'
   | 'chatpanel'
   | string;
+
+/**
+ * Bộ lọc phổ tín hiệu cho menu-signals / comp-signals — mirror
+ * EmbedSignalFilterOption (WebApp packages/embed/src/types.ts), hợp lệ theo
+ * signalFilterPolicy cấu hình trên FinAdmin.
+ */
+export type EmbedSignalFilterOption = {
+  taxonomy: 'INDEX_BASKET' | 'ICB_4_LEVEL' | 'GICS_4_LEVEL';
+  code: string;
+  level?: 1 | 2 | 3 | 4;
+  symbols?: string[];
+};
+
+/**
+ * Ghi đè chuỗi i18n từ host (org language mapping) — deep-merge vào resource
+ * i18n của widget. Mount sau ghi đè key trùng. Mirror EmbedI18nOverrides.
+ */
+export type EmbedI18nOverrides = {
+  vi?: Record<string, unknown>;
+  en?: Record<string, unknown>;
+};
 
 export type PartnerActionEvent = {
   type: string; // 'stock.detail_open' | 'stock.order_cta' | 'signal.order_cta' | ...
@@ -56,6 +78,27 @@ export type AutofinEmbedMountOptions = {
    *  overlay-index-detail / overlay-industry-detail: id chỉ số/ngành
    *  (VNINDEX / INDUST_ALL). Đổi lúc chạy: handle.setProps({ symbol: 'VCB' }). */
   symbol?: string;
+  /** Bộ lọc phổ tín hiệu cho menu-signals / comp-signals (mirror signalFilter). */
+  signalFilter?: EmbedSignalFilterOption | null;
+  /**
+   * Token truy cập widget gắn vào header `Authorization` của mọi call dữ liệu.
+   * HOST tự lấy token ngắn hạn server-side (POST /api/org/token, Basic
+   * clientId:clientSecret — secret không bao giờ xuống trình duyệt) rồi truyền
+   * vào đây. Không truyền client secret / refresh token dài hạn.
+   */
+  token?: string;
+  /**
+   * CSS host tiêm vào shadow root SAU CSS gốc của app (thắng tie theo thứ tự
+   * nguồn). Dùng bởi service mapping theme của tổ chức.
+   */
+  hostCss?: string;
+  /** Ghi đè i18n từ host (mục ngôn ngữ của mapping theme), deep-merge vào bundle. */
+  i18nOverrides?: EmbedI18nOverrides;
+  /**
+   * Cấu hình runtime (CHỈ các key env embed nằm trong allowlist — secret bị từ
+   * chối). Áp dụng lại mỗi mount/setProps. Đối tác thông thường bỏ trống.
+   */
+  config?: Record<string, string>;
   /** Domain proxy công khai của đối tác. Trống = cùng origin (site này). */
   apiBase?: string;
   theme?: EmbedTheme;

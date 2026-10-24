@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { FAC_HOST_CSS } from '../lib/facHostCss';
+import type { FacChatHandle } from '../lib/facChat';
 
 /**
  * Nhúng Financial Agent Chat (FAC) vào trang đối tác.
@@ -15,16 +16,9 @@ import { FAC_HOST_CSS } from '../lib/facHostCss';
 
 const BUNDLE_URL = '/embedded/fac-chat.js';
 
-interface FacHandle {
-  /** Shadow root mở mà FAC gắn vào host div — dùng để tiêm CSS. */
-  shadow?: ShadowRoot;
-  setProps: (props: {
-    theme?: 'light' | 'dark';
-    locale?: 'vi' | 'en';
-    hostCss?: string;
-  }) => void;
-  unmount: () => void;
-}
+// Kiểu handle + global Window.FacAgentChat khai báo 1 lần ở lib/facChat.ts
+// (mirror contract FAC) — khỏi khai báo trùng gây xung đột TS2717.
+type FacHandle = FacChatHandle;
 
 /**
  * Tiêm CSS trực tiếp vào shadow root, bên cạnh `mount({ hostCss })`.
@@ -41,14 +35,6 @@ function injectHostCss(shadow: ShadowRoot | undefined, css: string) {
     shadow.appendChild(style);
   }
   style.textContent = css;
-}
-
-declare global {
-  interface Window {
-    FacAgentChat?: {
-      mount: (host: HTMLElement, options: Record<string, unknown>) => FacHandle;
-    };
-  }
 }
 
 /** Nạp bundle đúng một lần, kể cả khi có nhiều instance cùng gọi. */
@@ -97,7 +83,7 @@ export default function FacChatHost({
     loadBundle()
       .then(() => {
         if (cancelled || !hostRef.current || handleRef.current) return;
-        handleRef.current = window.FacAgentChat!.mount(hostRef.current, {
+        const handle = window.FacAgentChat!.mount(hostRef.current, {
           // Cùng origin với trang → mọi lời gọi đi qua proxy, proxy gắn token.
           apiBase: window.location.origin,
           locale: 'vi',
@@ -113,7 +99,12 @@ export default function FacChatHost({
           defaultHistoryCollapsed: true,
           hostCss: FAC_HOST_CSS,
         });
-        injectHostCss(handleRef.current.shadow, FAC_HOST_CSS);
+        if (!handle) {
+          setError('window.FacAgentChat.mount trả về null');
+          return;
+        }
+        handleRef.current = handle;
+        injectHostCss(handle.shadow, FAC_HOST_CSS);
         // Shadow host nằm NGOÀI .fac-theme-root, nên attribute này là đường duy
         // nhất để CSS cấp host phản ứng theo theme. Giống FinFE.
         hostRef.current.setAttribute('data-theme', theme);

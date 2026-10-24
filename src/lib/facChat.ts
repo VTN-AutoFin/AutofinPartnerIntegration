@@ -26,11 +26,13 @@ export type FacChatMountProps = {
 };
 
 export type FacChatHandle = {
+  /** Shadow root mở mà SDK gắn vào host div (tiêm hostCss tại đây nếu cần). */
+  shadow?: ShadowRoot;
   setProps: (next: Partial<FacChatMountProps>) => void;
   unmount: () => void;
 };
 
-type FacChatApi = { mount: (el: HTMLElement, props: FacChatMountProps) => FacChatHandle | null };
+export type FacChatApi = { mount: (el: HTMLElement, props: FacChatMountProps) => FacChatHandle | null };
 
 declare global {
   interface Window {

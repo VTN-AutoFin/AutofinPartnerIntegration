@@ -19,7 +19,9 @@ export default function CompanyPage() {
           <code>symbol: 'FPT'</code> khi mount, đổi lúc chạy bằng{' '}
           <code>handle.setProps({'{ symbol: "VCB" }'})</code>. Cùng khối nội dung
           với popup "Chi tiết cổ phiếu" trong app AUTOFIN, nhưng nhúng inline
-          thẳng vào trang đối tác.
+          thẳng vào trang đối tác. Riêng <code>overlay-stock-detail</code> giữ
+          hành vi overlay gốc: mount là tự mở drawer Chi tiết cổ phiếu (bên
+          trong widget), khối host chỉ hiển thị trạng thái.
         </>
       }
     >
@@ -57,6 +59,13 @@ export default function CompanyPage() {
         symbol="FPT"
         height={450}
         title="comp-news — Tin tức doanh nghiệp"
+      />
+      <WidgetHost
+        productId="overlay-stock-detail"
+        partnerCode={PARTNER_CODE}
+        symbol="FPT"
+        height={320}
+        title="overlay-stock-detail — mở drawer Chi tiết cổ phiếu (overlay)"
       />
       <ActionLog />
       <CodeBlock

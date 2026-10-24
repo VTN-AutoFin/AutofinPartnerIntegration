@@ -5,6 +5,7 @@ import DerivativesPage from './pages/DerivativesPage';
 import SignalsPage from './pages/SignalsPage';
 import BoardPage from './pages/BoardPage';
 import NewsPage from './pages/NewsPage';
+import ReportsPage from './pages/ReportsPage';
 import CompanyPage from './pages/CompanyPage';
 import MarketPage from './pages/MarketPage';
 import StockFilterPage from './pages/StockFilterPage';
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/signals" element={<SignalsPage />} />
           <Route path="/board" element={<BoardPage />} />
           <Route path="/news" element={<NewsPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
           <Route path="/company" element={<CompanyPage />} />
           <Route path="/market" element={<MarketPage />} />
           <Route path="/stock-filter" element={<StockFilterPage />} />
