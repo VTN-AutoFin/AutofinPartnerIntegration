@@ -1,4 +1,4 @@
-import CodeBlock from '../components/CodeBlock';
+import WidgetHeader from '../components/WidgetHeader';
 import { useFacChat } from '../lib/facChat';
 import { useVisitorPerspective } from '../lib/visitorSession';
 import PageScaffold from './PageScaffold';
@@ -28,46 +28,7 @@ export default function ChatPanelPage() {
     },
   });
 
-  return (
-    <PageScaffold
-      title="FAC ChatPanel (chat AI)"
-      intro={
-        <>
-          Widget chat AI dùng SDK riêng <code>window.FacAgentChat</code> (bundle{' '}
-          <code>fac-chat.js</code>, Shadow DOM). Khác AutofinEmbed: không cần{' '}
-          <code>productId</code>/<code>partnerCode</code>; API chat đi qua proxy tại{' '}
-          <code>/api/v1/*</code>. <code>hostCss</code> cho phép đổi màu theo thương hiệu.
-        </>
-      }
-    >
-      <div className="widget-card">
-        <div className="widget-card-title">FacAgentChat — layout embedded</div>
-        <p className="muted" style={{ marginTop: 0 }}>
-          {visitorId ? (
-            <>
-              Góc nhìn <strong>END-USER</strong> — đang là khách:{' '}
-              <code className="api-path">{visitorId}</code> (chat per-visitor)
-            </>
-          ) : ready ? (
-            <>
-              Góc nhìn <strong>PARTNER</strong> — không phiên khách; đăng nhập
-              FAC để panel tự quản phiên
-            </>
-          ) : (
-            <>Đang xác định góc nhìn…</>
-          )}
-        </p>
-        <div ref={containerRef} className="widget-host" style={{ height: 600 }} />
-        {status === 'loading' ? <div className="widget-status">Đang nạp fac-chat.js…</div> : null}
-        {status === 'error' ? <div className="widget-status err">Lỗi: {error}</div> : null}
-        <p className="muted" style={{ marginTop: 8 }}>
-          Chat chạy thật cần FAC backend (:8002) qua proxy — xem Network: mọi request
-          /api/v1/* đều tới origin này.
-        </p>
-      </div>
-
-      <CodeBlock
-        code={`<!-- 1. Load FAC remote bundle QUA PROXY -->
+  const embedCode = `<!-- 1. Load FAC remote bundle QUA PROXY -->
 <script src="/embedded/fac-chat.js" defer crossorigin="anonymous"></script>
 
 <!-- 2. Host container -->
@@ -102,8 +63,52 @@ export default function ChatPanelPage() {
     });
     // handle.setProps({ theme: 'dark' }) · handle.unmount()
   });
-</script>`}
-      />
+</script>`;
+
+  return (
+    <PageScaffold
+      title="FAC ChatPanel (chat AI)"
+      intro={
+        <>
+          Widget chat AI dùng SDK riêng <code>window.FacAgentChat</code> (bundle{' '}
+          <code>fac-chat.js</code>, Shadow DOM). Khác AutofinEmbed: không cần{' '}
+          <code>productId</code>/<code>partnerCode</code>; API chat đi qua proxy tại{' '}
+          <code>/api/v1/*</code>. <code>hostCss</code> cho phép đổi màu theo thương hiệu.
+        </>
+      }
+    >
+      <div className="widget-card">
+        <WidgetHeader
+          name="FAC Chat (AI)"
+          id="FacAgentChat"
+          description="Chat AI dùng SDK riêng fac-chat.js (Shadow DOM), layout embedded; API chat đi qua proxy /api/v1/*."
+          tags={['layout: embedded']}
+          code={embedCode}
+        />
+        <p className="muted" style={{ marginTop: 0 }}>
+          {visitorId ? (
+            <>
+              Góc nhìn <strong>END-USER</strong> — đang là khách:{' '}
+              <code>{visitorId}</code> (chat per-visitor)
+            </>
+          ) : ready ? (
+            <>
+              Góc nhìn <strong>PARTNER</strong> — không phiên khách; đăng nhập
+              FAC để panel tự quản phiên
+            </>
+          ) : (
+            <>Đang xác định góc nhìn…</>
+          )}
+        </p>
+        <div ref={containerRef} className="widget-host" style={{ height: 600 }} />
+        {status === 'loading' ? <div className="widget-status">Đang nạp fac-chat.js…</div> : null}
+        {status === 'error' ? <div className="widget-status err">Lỗi: {error}</div> : null}
+        <p className="muted" style={{ marginTop: 8 }}>
+          Chat chạy thật cần FAC backend (:8002) qua proxy — xem Network: mọi request
+          /api/v1/* đều tới origin này.
+        </p>
+      </div>
+
     </PageScaffold>
   );
 }

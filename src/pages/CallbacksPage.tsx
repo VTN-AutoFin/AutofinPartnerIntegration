@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { PartnerActionEvent } from '../lib/embed';
 import { loadEmbedSdk, API_BASE, PARTNER_CODE } from '../lib/embed';
-import CodeBlock from '../components/CodeBlock';
+import WidgetHeader from '../components/WidgetHeader';
 import PageScaffold from './PageScaffold';
 import { useEffect } from 'react';
 
@@ -45,6 +45,34 @@ export default function CallbacksPage() {
 
   const apiBase = API_BASE || 'https://api.tenmien-doitac.vn';
 
+  const embedCode = `window.AutofinEmbed.mount({
+  el: '#af-widget',
+  productId: 'comp-signals',
+  locale: 'vi',
+  partnerCode: '${PARTNER_CODE}',
+  dataProviderId: 'AUTOFIN',
+  apiBase: '${apiBase}',
+  // tắt popup nội bộ → mọi sự kiện đi qua callback
+  features: { internalOverlays: false },
+
+  onPartnerAction: function (event) {
+    // event.type: 'stock.detail_open' | 'stock.order_cta' | 'signal.order_cta' | ...
+    if (event.type === 'stock.order_cta' || event.type === 'signal.order_cta') {
+      openYourOrderForm({
+        symbol: event.symbol,
+        side: event.side,        // 'BUY' | 'SELL'
+        price: event.price,
+        signalId: event.signalId,
+      });
+    }
+
+    if (event.type === 'stock.detail_open') {
+      // khi internalOverlays:false — tự điều hướng trang chi tiết
+      window.location.href = '/chi-tiet/' + event.symbol;
+    }
+  },
+});`;
+
   return (
     <PageScaffold
       title="Callbacks — bắt sự kiện widget"
@@ -52,13 +80,20 @@ export default function CallbacksPage() {
         <>
           Widget KHÔNG xử lý đặt lệnh. Khi user bấm CTA, SDK bắn{' '}
           <code>PartnerActionEvent</code> vào <code>onPartnerAction</code> — site đối tác
-          mở form/lựơng điều hướng riêng. Demo bên dưới mở form mẫu.
+          mở form/luồng điều hướng riêng. Demo bên dưới mở form mẫu.
         </>
       }
     >
       <div className="callbacks-layout">
         <div className="widget-card">
-          <div className="widget-card-title">Widget (comp-signals, internalOverlays:false)</div>
+          <WidgetHeader
+            name="Tín hiệu + callback đặt lệnh"
+            id="comp-signals"
+            description="Tắt popup nội bộ — bấm CTA trong widget sẽ bắn onPartnerAction để site đối tác mở form riêng."
+            tags={['internalOverlays: false']}
+            code={embedCode}
+            lang="javascript"
+          />
           <div id="af-callback-widget" className="widget-host" style={{ height: 360 }} />
         </div>
 
@@ -89,7 +124,7 @@ export default function CallbacksPage() {
                 <span>Khối lượng</span>
                 <input placeholder="100" />
               </div>
-              <button className="btn">Gửi lệnh (demo)</button>
+              <button className="btn btn-primary">Gửi lệnh (demo)</button>
               <p className="muted">
                 Đây là form DEMO — thay bằng API đặt lệnh của chính đối tác.
               </p>
@@ -98,36 +133,6 @@ export default function CallbacksPage() {
         </div>
       </div>
 
-      <CodeBlock
-        lang="javascript"
-        code={`window.AutofinEmbed.mount({
-  el: '#af-widget',
-  productId: 'comp-signals',
-  locale: 'vi',
-  partnerCode: '${PARTNER_CODE}',
-  dataProviderId: 'AUTOFIN',
-  apiBase: '${apiBase}',
-  // tắt popup nội bộ → mọi sự kiện đi qua callback
-  features: { internalOverlays: false },
-
-  onPartnerAction: function (event) {
-    // event.type: 'stock.detail_open' | 'stock.order_cta' | 'signal.order_cta' | ...
-    if (event.type === 'stock.order_cta' || event.type === 'signal.order_cta') {
-      openYourOrderForm({
-        symbol: event.symbol,
-        side: event.side,        // 'BUY' | 'SELL'
-        price: event.price,
-        signalId: event.signalId,
-      });
-    }
-
-    if (event.type === 'stock.detail_open') {
-      // khi internalOverlays:false — tự điều hướng trang chi tiết
-      window.location.href = '/chi-tiet/' + event.symbol;
-    }
-  },
-});`}
-      />
     </PageScaffold>
   );
 }
