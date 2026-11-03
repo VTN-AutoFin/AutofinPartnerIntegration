@@ -36,6 +36,12 @@ import {
   endUserTokenStatus,
   facTokenStatus,
 } from './token-manager.mjs';
+import {
+  fetchUpstream,
+  isTimeoutError,
+  dnsCacheStatus,
+  upstreamHealthStatus,
+} from './net-resilience.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = path.resolve(__dirname, '../dist');
@@ -103,9 +109,11 @@ app.get(Object.keys(SDK_FILES), async (req, res) => {
 
   try {
     // identity: tránh bug undici + gzip (assert !this.paused) — xem HOP_BY_HOP
-    const upstream = await fetch(`${origin}${target.path}`, {
-      headers: { 'accept-encoding': 'identity' },
-    });
+    const upstream = await fetchUpstream(
+      `${origin}${target.path}`,
+      { headers: { 'accept-encoding': 'identity' } },
+      { label: 'webapp', timeoutMs: 30 * 1000 }
+    );
     if (!upstream.ok) {
       return res.status(502).type('text/plain').send(
         `Khong tai duoc SDK widget (HTTP ${upstream.status}). Kiem tra nguon ${origin}${target.path} da chua?`
@@ -121,9 +129,10 @@ app.get(Object.keys(SDK_FILES), async (req, res) => {
     res.set('Cache-Control', 'public, max-age=300');
     return res.send(buf);
   } catch (e) {
-    return res.status(502).type('text/plain').send(
-      `Khong tai duoc SDK widget: ${e.message}. Kiem tra nguon ${origin} da chua?`
-    );
+    return res
+      .status(isTimeoutError(e) ? 504 : 502)
+      .type('text/plain')
+      .send(`Khong tai duoc SDK widget: ${e.message}. Kiem tra nguon ${origin} da chua?`);
   }
 });
 
@@ -182,7 +191,13 @@ app.all('/financial-agent/api/*', async (req, res) => {
       req.method === 'GET' || req.method === 'HEAD' || !req.body || req.body.length === 0
         ? undefined
         : req.body;
-    return fetch(upstreamUrl, { method: req.method, headers: buildHeaders(token), body });
+    // Route STREAM (SSE) — không timeout, không retry: cắt giữa stream tệ hơn
+    // bỏ hàng. Lỗi pha kết nối do Agent/DNS cache xử lý sẵn ở tầng dưới.
+    return fetchUpstream(
+      upstreamUrl,
+      { method: req.method, headers: buildHeaders(token), body },
+      { label: 'facApi', timeoutMs: 0, retries: 0 }
+    );
   };
 
   try {
@@ -224,10 +239,11 @@ app.all('/financial-agent/api/*', async (req, res) => {
     } else {
       res.end();
     }
-  } catch {
-    return res.status(502).type('application/json').send(
-      JSON.stringify({ errorMessage: 'Proxy khong goi duoc FAC API' })
-    );
+  } catch (e) {
+    return res
+      .status(isTimeoutError(e) ? 504 : 502)
+      .type('application/json')
+      .send(JSON.stringify({ errorMessage: 'Proxy khong goi duoc FAC API' }));
   }
 });
 
@@ -263,7 +279,13 @@ app.all(['/api/v1/*', '/api/v1'], async (req, res) => {
       req.method === 'GET' || req.method === 'HEAD' || !req.body || req.body.length === 0
         ? undefined
         : req.body;
-    return fetch(upstreamUrl, { method: req.method, headers: buildHeaders(token), body });
+    // Panel FAC cũng chạy SSE (login/stream) — như route trên: stream không
+    // đặt timeout, không retry giữa stream.
+    return fetchUpstream(
+      upstreamUrl,
+      { method: req.method, headers: buildHeaders(token), body },
+      { label: 'facApi', timeoutMs: 0, retries: 0 }
+    );
   };
 
   try {
@@ -301,10 +323,11 @@ app.all(['/api/v1/*', '/api/v1'], async (req, res) => {
     });
     res.status(upstream.status).set(resHeaders);
     return res.send(Buffer.from(await upstream.arrayBuffer()));
-  } catch {
-    return res.status(502).type('application/json').send(
-      JSON.stringify({ errorMessage: 'Proxy khong goi duoc FAC API' })
-    );
+  } catch (e) {
+    return res
+      .status(isTimeoutError(e) ? 504 : 502)
+      .type('application/json')
+      .send(JSON.stringify({ errorMessage: 'Proxy khong goi duoc FAC API' }));
   }
 });
 
@@ -336,7 +359,14 @@ app.all('/api/*', async (req, res) => {
       req.method === 'GET' || req.method === 'HEAD' || !req.body || req.body.length === 0
         ? undefined
         : req.body;
-    return fetch(upstreamUrl, { method: req.method, headers: buildHeaders(token), body });
+    // JSON API — timeout 20s (chuỗi mint token nhiều chặng, upstream xa hay
+    // chậm), retry 1 lần khi lỗi pha kết nối (DNS/refused — request chưa chạm
+    // upstream nên an toàn).
+    return fetchUpstream(
+      upstreamUrl,
+      { method: req.method, headers: buildHeaders(token), body },
+      { label: 'finserver', timeoutMs: 20 * 1000, retries: 1 }
+    );
   };
 
   try {
@@ -404,10 +434,19 @@ app.all('/api/*', async (req, res) => {
     const buf = Buffer.from(await upstream.arrayBuffer());
     return res.send(buf);
   } catch (e) {
-    // Không lộ URL upstream trong message
-    return res.status(502).type('application/json').send(
-      JSON.stringify({ errorMessage: 'Proxy khong goi duoc API nguon' })
-    );
+    // Không lộ URL upstream trong message. 504 = upstream không đáp trong hạn
+    // (khác 502 = không gọi được — giúp phân biệt chậm với chết).
+    return res
+      .status(isTimeoutError(e) ? 504 : 502)
+      .type('application/json')
+      .send(
+        JSON.stringify({
+          errorMessage:
+            isTimeoutError(e)
+              ? 'API nguon khong phan hoi trong thoi han'
+              : 'Proxy khong goi duoc API nguon',
+        })
+      );
   }
 });
 
@@ -419,10 +458,14 @@ app.use('/static', async (req, res) => {
   const abort = new AbortController();
   req.on('close', () => abort.abort());
   try {
-    const upstream = await fetch(`${WEBAPP_UPSTREAM}/static${req.url}`, {
-      signal: abort.signal,
-      headers: { 'accept-encoding': 'identity' }, // undici+gzip bug — xem HOP_BY_HOP
-    });
+    const upstream = await fetchUpstream(
+      `${WEBAPP_UPSTREAM}/static${req.url}`,
+      {
+        signal: abort.signal,
+        headers: { 'accept-encoding': 'identity' }, // undici+gzip bug — xem HOP_BY_HOP
+      },
+      { label: 'webapp', timeoutMs: 30 * 1000 }
+    );
     if (!upstream.ok) {
       return res.status(upstream.status).type('text/plain').send(`Khong tai duoc ${req.url}`);
     }
@@ -432,7 +475,10 @@ app.use('/static', async (req, res) => {
     return res.send(buf);
   } catch (e) {
     if (abort.signal.aborted) return;
-    return res.status(502).type('text/plain').send(`Proxy khong goi duoc static: ${e.message}`);
+    return res
+      .status(isTimeoutError(e) ? 504 : 502)
+      .type('text/plain')
+      .send(`Proxy khong goi duoc static: ${e.message}`);
   }
 });
 
@@ -483,6 +529,10 @@ app.get('/healthz', (req, res) => {
       facWeb: FAC_WEB_UPSTREAM,
       facApi: FAC_API_UPSTREAM,
     },
+    // Chẩn đoán flake mạng: cache DNS + kết quả gần nhất theo traffic thật
+    // (không probe thêm — luôn phản hồi nhanh kể cả khi upstream chết).
+    dnsCache: dnsCacheStatus(),
+    upstreamHealth: upstreamHealthStatus(),
     mode: fs.existsSync(DIST_DIR) ? 'prod (dist/)' : 'dev (chỉ proxy — chạy vite riêng)',
   });
 });
